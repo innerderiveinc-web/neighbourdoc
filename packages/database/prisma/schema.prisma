@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  patient
+  doctor
+  admin
+  superadmin
+  partner
+}
+
+enum Language {
+  Hindi
+  English
+  Hinglish
+  Marathi
+  Bengali
+  Tamil
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  rejected
+  suspended
+}
+
+enum AvailabilityStatus {
+  online
+  offline
+  busy
+}
+
+enum UrgencyLevel {
+  normal
+  urgent
+  emergency
+}
+
+enum ConsultationStatus {
+  draft
+  payment_pending
+  paid
+  queued
+  assigned
+  in_consultation
+  completed
+  cancelled
+  refunded
+  escalated
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PayoutStatus {
+  pending
+  approved
+  paid
+  held
+}
+
+enum OrganizationType {
+  factory
+  apartment_society
+  small_business
+  clinic_partner
+}
+
+enum RewardStatus {
+  pending
+  earned
+  redeemed
+  expired
+}
+
+model User {
+  id             String           @id @default(cuid())
+  name           String
+  phone          String           @unique
+  email          String?
+  role           UserRole
+  language       Language         @default(Hindi)
+  createdAt      DateTime         @default(now())
+  patientProfile PatientProfile?
+  doctorProfile  DoctorProfile?
+  auditLogs      AuditLog[]       @relation("ActorAuditLogs")
+  referrals      Referral[]       @relation("Referrer")
+}
+
+model PatientProfile {
+  id                  String               @id @default(cuid())
+  userId              String               @unique
+  user                User                 @relation(fields: [userId], references: [id])
+  age                 Int
+  gender              Gender
+  address             String?
+  city                String
+  locality            String?
+  organizationMembers OrganizationMember[]
+  consultations       Consultation[]
+  payments            Payment[]
+}
+
+model DoctorProfile {
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  user               User                @relation(fields: [userId], references: [id])
+  registrationNumber String              @unique
+  qualification      String
+  specialization     String
+  verificationStatus VerificationStatus  @default(pending)
+  availabilityStatus AvailabilityStatus  @default(offline)
+  languages          Language[]          @default([Hindi])
+  city               String
+  consultationFee    Int                 @default(4900)
+  payoutShare        Int                 @default(3000)
+  lastAssignedAt     DateTime?
+  consultations      Consultation[]
+  prescriptions      Prescription[]
+  earnings           DoctorEarning[]
+}
+
+model Consultation {
+  id                 String              @id @default(cuid())
+  publicId           String              @unique
+  patientId          String
+  patient            PatientProfile      @relation(fields: [patientId], references: [id])
+  doctorId           String?
+  doctor             DoctorProfile?      @relation(fields: [doctorId], references: [id])
+  organizationId     String?
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+  symptoms           String
+  existingIllnesses  String              @default("")
+  urgencyLevel       UrgencyLevel        @default(normal)
+  status             ConsultationStatus  @default(payment_pending)
+  paymentStatus      PaymentStatus       @default(pending)
+  callbackDeadline   DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  consentAt          DateTime
+  createdAt          DateTime            @default(now())
+  prescriptions      Prescription[]
+  payments           Payment[]
+  doctorEarnings     DoctorEarning[]
+  feedback           Feedback?
+
+  @@index([status, createdAt])
+  @@index([doctorId, status])
+  @@index([organizationId])
+}
+
+model Prescription {
+  id             String          @id @default(cuid())
+  consultationId String
+  consultation   Consultation    @relation(fields: [consultationId], references: [id])
+  doctorId       String
+  doctor         DoctorProfile   @relation(fields: [doctorId], references: [id])
+  medicines      Json
+  advice         String
+  followUpDate   DateTime?
+  fileUrl        String?
+  createdAt      DateTime        @default(now())
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  consultationId    String
+  consultation      Consultation    @relation(fields: [consultationId], references: [id])
+  patientId         String
+  patient           PatientProfile  @relation(fields: [patientId], references: [id])
+  amount            Int
+  gateway           String          @default("razorpay")
+  gatewayOrderId    String?
+  gatewayPaymentId  String?
+  gatewaySignature  String?
+  status            PaymentStatus   @default(pending)
+  createdAt         DateTime        @default(now())
+}
+
+model DoctorEarning {
+  id             String         @id @default(cuid())
+  doctorId       String
+  doctor         DoctorProfile  @relation(fields: [doctorId], references: [id])
+  consultationId String
+  consultation   Consultation   @relation(fields: [consultationId], references: [id])
+  amount         Int
+  payoutStatus   PayoutStatus   @default(pending)
+  createdAt      DateTime       @default(now())
+}
+
+model Organization {
+  id            String               @id @default(cuid())
+  name          String
+  type          OrganizationType
+  city          String
+  contactPerson String
+  phone         String
+  planId        String?
+  members       OrganizationMember[]
+  consultations Consultation[]
+}
+
+model OrganizationMember {
+  organizationId String
+  patientId      String
+  employeeCode   String?
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  patient        PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@id([organizationId, patientId])
+}
+
+model Feedback {
+  id             String       @id @default(cuid())
+  consultationId String       @unique
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  rating         Int
+  comment        String?
+  createdAt      DateTime     @default(now())
+}
+
+model Referral {
+  id            String       @id @default(cuid())
+  referrerId    String
+  referrer      User         @relation("Referrer", fields: [referrerId], references: [id])
+  referredPhone String
+  rewardStatus  RewardStatus @default(pending)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("ActorAuditLogs", fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}

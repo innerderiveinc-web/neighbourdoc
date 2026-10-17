@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js & Build Outputs
+.next/
+out/
+build/
+dist/
+.data/
+
+# Expo & React Native
+.expo/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Environment Variables & Secrets (CRITICAL FOR SECURITY)
+.env
+.env*.local
+.env.production
+*.pem
+*.key
+secrets/
+
+# Logs & Diagnostics
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Generated Junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript Cache & IDEs
+*.tsbuildinfo
+next-env.d.ts
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace

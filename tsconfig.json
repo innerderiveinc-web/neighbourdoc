@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@neighbordoc/shared": ["packages/shared/src/index.ts"],
+      "@neighbordoc/shared/*": ["packages/shared/src/*"],
+      "@neighbordoc/api": ["packages/api/src/index.ts"],
+      "@neighbordoc/api/*": ["packages/api/src/*"],
+      "@neighbordoc/ui": ["packages/ui/src/index.ts"],
+      "@neighbordoc/ui/*": ["packages/ui/src/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "vitest.config.ts"]
+}

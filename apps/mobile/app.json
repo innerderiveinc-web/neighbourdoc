@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "NeighborDoc",
+    "slug": "neighbordoc",
+    "scheme": "neighbordoc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["android", "ios"],
+    "ios": {
+      "bundleIdentifier": "com.neighbordoc.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.neighbordoc.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0E9F6E"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "replace-with-eas-project-id"
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "neighbordoc",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @neighbordoc/web run dev",
+    "dev:admin": "npm --workspace @neighbordoc/admin run dev",
+    "dev:doctor": "npm --workspace @neighbordoc/doctor run dev",
+    "dev:mobile": "npm --workspace @neighbordoc/mobile run start",
+    "test": "NODE_ENV=test node --test packages/shared/src/__tests__/*.test.ts packages/api/src/__tests__/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build:web": "npm --workspace @neighbordoc/web run build",
+    "build:admin": "npm --workspace @neighbordoc/admin run build",
+    "build:doctor": "npm --workspace @neighbordoc/doctor run build",
+    "prisma:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "seed": "tsx --env-file=.env packages/database/src/seed.ts",
+    "verify": "npm run typecheck && npm test && npm run build:web && npm run build:admin && npm run build:doctor && rm -rf apps/web/.next apps/admin/.next apps/doctor/.next"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}
