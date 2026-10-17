@@ -13,6 +13,7 @@
     "dev:mobile": "npm --workspace @neighbordoc/mobile run start",
     "test": "NODE_ENV=test node --test packages/shared/src/__tests__/*.test.ts packages/api/src/__tests__/*.test.ts",
     "typecheck": "tsc --noEmit",
+    "build": "npm run build:web",
     "build:web": "npm --workspace @neighbordoc/web run build",
     "build:admin": "npm --workspace @neighbordoc/admin run build",
     "build:doctor": "npm --workspace @neighbordoc/doctor run build",
