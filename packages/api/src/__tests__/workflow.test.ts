@@ -210,3 +210,50 @@ test("initiates telephony click-to-call bridge with masked patient privacy", () 
   assert.equal(bridge.doctorPhone, "+919800000001");
 });
 
+test("retrieves and dynamically updates system settings with audit logging", () => {
+  const api = createDemoApi(":memory:");
+  const initial = api.getSettings();
+  assert.equal(initial.basicConsultationFee, 49);
+  assert.equal(initial.doctorPayoutShare, 30);
+  assert.equal(initial.slaCallbackMinutes, 15);
+  assert.equal(initial.maintenanceMode, false);
+
+  const updated = api.updateSettings(
+    {
+      basicConsultationFee: 59,
+      doctorPayoutShare: 35,
+      slaCallbackMinutes: 10,
+      maintenanceMode: true
+    },
+    { id: "admin_user_99", name: "Super Admin" }
+  );
+
+  assert.equal(updated.basicConsultationFee, 59);
+  assert.equal(updated.doctorPayoutShare, 35);
+  assert.equal(updated.slaCallbackMinutes, 10);
+  assert.equal(updated.maintenanceMode, true);
+  assert.equal(updated.updatedBy, "Super Admin");
+
+  // Verify that new consultations use updated pricing
+  const consultation = api.createConsultation({
+    name: "Aman Gupta",
+    phone: "+919811223344",
+    age: 26,
+    gender: "male",
+    city: "Lucknow",
+    language: "Hindi",
+    symptoms: "Mild headache",
+    plan: "basic",
+    consent: true
+  });
+  assert.equal(consultation.ok, true);
+  assert.equal(consultation.consultation.amount, 5900); // ₹59 in paise
+
+  // Verify audit log entry
+  const logs = api.listAuditLogs();
+  const settingsLog = logs.find((l) => l.action === "system_settings_updated");
+  assert.ok(settingsLog);
+  assert.equal(settingsLog.actorId, "admin_user_99");
+});
+
+

@@ -40,6 +40,21 @@ export type ConsultationAccessRecord = {
   organizationId?: string | null;
 };
 
+export type SystemSettings = {
+  basicConsultationFee: number;
+  priorityConsultationFee: number;
+  doctorPayoutShare: number;
+  slaCallbackMinutes: number;
+  emergencyHelpline: string;
+  supportPhone: string;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  activeOtpProvider: "mock" | "msg91" | "twilio";
+  activePaymentGateway: "mock" | "razorpay";
+  updatedAt: string;
+  updatedBy: string;
+};
+
 const emergencyTerms = [
   "chest pain",
   "breathing difficulty",

@@ -10,6 +10,7 @@ import {
   type ConsultationStatus,
   type DoctorCandidate,
   type Language,
+  type SystemSettings,
   type UrgencyLevel,
   type UserRole
 } from "@neighbordoc/shared";
@@ -449,6 +450,7 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
 // ---------------------------------------------------------
 
 export type NeighborDocState = {
+  settings?: SystemSettings;
   users: DemoUser[];
   patients: DemoPatient[];
   doctors: DemoDoctor[];
@@ -464,6 +466,23 @@ export type NeighborDocState = {
   notifications: DemoNotification[];
   telephonyBridges: TelephonyBridge[];
 };
+
+export function getDefaultSettings(): SystemSettings {
+  return {
+    basicConsultationFee: 49,
+    priorityConsultationFee: 99,
+    doctorPayoutShare: 30,
+    slaCallbackMinutes: 15,
+    emergencyHelpline: "112 / 108",
+    supportPhone: "+918000000000",
+    maintenanceMode: false,
+    maintenanceMessage: "सिस्टम नियमित रखरखाव (maintenance) के अंतर्गत है। आपातकाल में 112 डायल करें।",
+    activeOtpProvider: (process.env.OTP_PROVIDER as "mock" | "msg91" | "twilio") ?? "mock",
+    activePaymentGateway: (process.env.RAZORPAY_KEY_ID ? "razorpay" : "mock") as "mock" | "razorpay",
+    updatedAt: nowIso(),
+    updatedBy: "System Default"
+  };
+}
 
 export function createDemoApi(persistencePath?: string) {
   const isTestMode = process.env.NODE_ENV === "test";
@@ -527,6 +546,7 @@ export function createDemoApi(persistencePath?: string) {
 
   // Load state from file if exists
   let state: NeighborDocState = {
+    settings: getDefaultSettings(),
     users: getInitialUsers(),
     patients: [],
     doctors: getInitialDoctors(),
@@ -551,6 +571,7 @@ export function createDemoApi(persistencePath?: string) {
         state = {
           ...state,
           ...parsed,
+          settings: parsed.settings ? { ...getDefaultSettings(), ...parsed.settings } : getDefaultSettings(),
           // Ensure default seeded doctors and admin are always available
           doctors: parsed.doctors?.length ? parsed.doctors : getInitialDoctors(),
           users: parsed.users?.length ? parsed.users : getInitialUsers()
@@ -639,7 +660,8 @@ export function createDemoApi(persistencePath?: string) {
     consultation.doctorId = doctor.id;
     consultation.doctorUserId = doctor.userId;
     consultation.status = "assigned";
-    consultation.callbackDeadline = callbackDeadline(new Date(assignedAt)).toISOString();
+    const slaMinutes = state.settings?.slaCallbackMinutes ?? 15;
+    consultation.callbackDeadline = callbackDeadline(new Date(assignedAt), slaMinutes).toISOString();
 
     const notif = {
       id: id("notification"),
@@ -767,7 +789,15 @@ export function createDemoApi(persistencePath?: string) {
         return { ok: false as const, reason: "emergency_detected", emergency };
       }
 
-      const price = getConsultationPrice(input.plan);
+      const basePrice = getConsultationPrice(input.plan);
+      const configuredAmount =
+        input.plan === "basic" && state.settings?.basicConsultationFee
+          ? state.settings.basicConsultationFee * 100
+          : input.plan === "priority" && state.settings?.priorityConsultationFee
+          ? state.settings.priorityConsultationFee * 100
+          : basePrice.amount;
+      const price = { ...basePrice, amount: configuredAmount };
+
       const consultation: DemoConsultation = {
         id: id("consultation"),
         patientId: patient.id,
@@ -805,6 +835,14 @@ export function createDemoApi(persistencePath?: string) {
     },
     createPaymentOrder(input: { plan: ConsultationPlan; consultationId?: string; patientId?: string }) {
       const order = createPaymentOrder(input.plan);
+      const configuredAmount =
+        input.plan === "basic" && state.settings?.basicConsultationFee
+          ? state.settings.basicConsultationFee * 100
+          : input.plan === "priority" && state.settings?.priorityConsultationFee
+          ? state.settings.priorityConsultationFee * 100
+          : order.amount;
+      order.amount = configuredAmount;
+
       state.payments.push({
         id: id("payment"),
         consultationId: input.consultationId,
@@ -949,11 +987,12 @@ export function createDemoApi(persistencePath?: string) {
       const prescription = api.createPrescription({ consultationId, ...prescriptionInput });
       consultation.status = "completed";
       consultation.completedAt = nowIso();
+      const payoutAmountPaise = (state.settings?.doctorPayoutShare ?? 30) * 100;
       const earning: DemoEarning = {
         id: id("earning"),
         doctorId: consultation.doctorId ?? "doctor_unassigned",
         consultationId,
-        amount: 3000,
+        amount: payoutAmountPaise,
         payoutStatus: "pending",
         createdAt: nowIso()
       };
@@ -1187,6 +1226,42 @@ export function createDemoApi(persistencePath?: string) {
 
       saveState();
       return bridge;
+    },
+
+    // ---------------------------------------------------------
+    // System Settings & Dynamic Runtime Governance
+    // ---------------------------------------------------------
+    getSettings(): SystemSettings {
+      if (!state.settings) {
+        state.settings = getDefaultSettings();
+      }
+      return state.settings;
+    },
+    updateSettings(patch: Partial<SystemSettings>, actor?: { id?: string; name?: string }): SystemSettings {
+      if (!state.settings) {
+        state.settings = getDefaultSettings();
+      }
+      const updated: SystemSettings = {
+        ...state.settings,
+        ...patch,
+        updatedAt: nowIso(),
+        updatedBy: actor?.name ?? actor?.id ?? "Admin"
+      };
+      state.settings = updated;
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: actor?.id ?? "admin",
+        action: "system_settings_updated",
+        entityType: "system_settings",
+        metadata: {
+          patch,
+          updatedBy: updated.updatedBy,
+          timestamp: updated.updatedAt
+        },
+        createdAt: nowIso()
+      });
+      saveState();
+      return state.settings;
     }
   };
 
