@@ -1,4 +1,4 @@
-# NeighborDoc API Contract
+# NeighbourDoc API Contract
 
 The executable local MVP exposes these endpoints under `apps/web/app/api/*`, backed by `packages/api`.
 

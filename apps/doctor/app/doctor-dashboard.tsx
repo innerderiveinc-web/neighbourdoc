@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MetricCard, PrimaryButton, Surface } from "@neighbordoc/ui";
+import { MetricCard, PrimaryButton, Surface } from "@neighbourdoc/ui";
 
 type Doctor = {
   id: string;
@@ -77,7 +77,8 @@ export function DoctorDashboardClient() {
   }, [activeCallModal, callStatus]);
 
   function getDoctorToken() {
-    return typeof window !== "undefined" ? localStorage.getItem("neighbordoc_doctor_token") : null;
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("neighbourdoc_doctor_token") || localStorage.getItem("neighbordoc_doctor_token");
   }
 
   async function refresh() {
@@ -97,7 +98,9 @@ export function DoctorDashboardClient() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem("neighbordoc_doctor_session");
+    const saved =
+      localStorage.getItem("neighbourdoc_doctor_session") ||
+      localStorage.getItem("neighbordoc_doctor_session");
     if (saved) {
       try {
         setSessionUser(JSON.parse(saved));
@@ -141,8 +144,10 @@ export function DoctorDashboardClient() {
       const user = { name: matchedDoctor?.name ?? "डॉ. प्रिया शर्मा", phone };
       setSessionUser(user);
       if (data.sessionToken) {
+        localStorage.setItem("neighbourdoc_doctor_token", data.sessionToken);
         localStorage.setItem("neighbordoc_doctor_token", data.sessionToken);
       }
+      localStorage.setItem("neighbourdoc_doctor_session", JSON.stringify(user));
       localStorage.setItem("neighbordoc_doctor_session", JSON.stringify(user));
       setNotice(`नमस्ते, ${user.name}`);
     } else {
@@ -151,6 +156,8 @@ export function DoctorDashboardClient() {
   }
 
   function handleLogout() {
+    localStorage.removeItem("neighbourdoc_doctor_session");
+    localStorage.removeItem("neighbourdoc_doctor_token");
     localStorage.removeItem("neighbordoc_doctor_session");
     localStorage.removeItem("neighbordoc_doctor_token");
     setSessionUser(null);
@@ -275,7 +282,7 @@ export function DoctorDashboardClient() {
             <span className="inline-block rounded-full bg-[#E8F3F1] px-3 py-1 text-xs font-bold text-[#0B4F48]">
               चिकित्सक सत्यापन पोर्टल
             </span>
-            <h1 className="mt-3 text-2xl font-black text-[#0F2F2E]">NeighborDoc डॉक्टर पोर्टल</h1>
+            <h1 className="mt-3 text-2xl font-black text-[#0F2F2E]">NeighbourDoc डॉक्टर पोर्टल</h1>
             <p className="mt-1 text-xs text-[#64748B]">रजिस्टर्ड मोबाइल नंबर और OTP से साइन इन करें</p>
           </div>
 
@@ -580,7 +587,7 @@ export function DoctorDashboardClient() {
       )}
 
       <footer className="mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8]">
-        NeighborDoc Telehealth Clinical Suite · Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
+        NeighbourDoc Telehealth Clinical Suite · Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
       </footer>
     </main>
   );

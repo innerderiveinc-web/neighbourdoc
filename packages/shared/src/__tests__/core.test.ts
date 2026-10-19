@@ -8,7 +8,7 @@ import {
 } from "../index.ts";
 import type { DoctorCandidate } from "../index.ts";
 
-describe("NeighborDoc core healthcare logic", () => {
+describe("NeighbourDoc core healthcare logic", () => {
   it("blocks emergency symptoms and returns an audit-safe reason", () => {
     const result = detectEmergency("Patient has chest pain and breathing difficulty");
 

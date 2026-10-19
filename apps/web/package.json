@@ -1,5 +1,5 @@
 {
-  "name": "@neighbordoc/web",
+  "name": "@neighbourdoc/web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,9 +8,9 @@
     "start": "next start --port 3100"
   },
   "dependencies": {
-    "@neighbordoc/api": "1.0.0",
-    "@neighbordoc/shared": "1.0.0",
-    "@neighbordoc/ui": "1.0.0",
+    "@neighbourdoc/api": "1.0.0",
+    "@neighbourdoc/shared": "1.0.0",
+    "@neighbourdoc/ui": "1.0.0",
     "next": "^15.5.18",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

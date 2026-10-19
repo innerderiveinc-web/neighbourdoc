@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-const apiBase = process.env.NEIGHBORDOC_API_ORIGIN ?? "http://localhost:3100";
+const apiBase = process.env.NEIGHBOURDOC_API_ORIGIN ?? process.env.NEIGHBORDOC_API_ORIGIN ?? "http://localhost:3100";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@neighbordoc/ui"],
+  transpilePackages: ["@neighbourdoc/ui", "@neighbordoc/ui"],
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiBase}/api/:path*` }];
   }

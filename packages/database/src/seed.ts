@@ -6,7 +6,7 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { phone: "+919999999999" },
     update: {},
-    create: { name: "NeighborDoc Operations Admin", phone: "+919999999999", role: "superadmin", language: "English" }
+    create: { name: "NeighbourDoc Operations Admin", phone: "+919999999999", role: "superadmin", language: "English" }
   });
 
   const patientUser = await prisma.user.upsert({
@@ -79,7 +79,7 @@ async function main() {
     }
   });
 
-  console.log(`✓ Seeded NeighborDoc with Admin: ${admin.phone} and Doctors: ${doctor1User.phone}, ${doctor2User.phone}`);
+  console.log(`✓ Seeded NeighbourDoc with Admin: ${admin.phone} and Doctors: ${doctor1User.phone}, ${doctor2User.phone}`);
 }
 
 main().finally(async () => {

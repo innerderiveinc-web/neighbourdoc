@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "रिफंड एवं रद्दीकरण नीति (Refund & Cancellation Policy) — NeighborDoc",
+  title: "रिफंड एवं रद्दीकरण नीति (Refund & Cancellation Policy) — NeighbourDoc",
   description: "15 मिनट में डॉक्टर का फोन न आने पर 100% तुरंत रिफंड गारंटी। पारदर्शी और सुरक्षित नीति।"
 };
 
@@ -10,7 +10,7 @@ export default function RefundPolicyPage() {
     <div className="min-h-screen bg-[#FAFBF9] py-12 px-4 sm:px-6">
       <main className="mx-auto max-w-3xl rounded-3xl border border-[#D1E6E3] bg-white p-6 sm:p-10 shadow-sm text-[#1E293B]">
         <Link href="/" className="text-xs font-bold text-[#0B4F48] hover:underline">
-          &larr; NeighborDoc होमपेज पर वापस जाएं
+          &larr; NeighbourDoc होमपेज पर वापस जाएं
         </Link>
 
         <div className="mt-4 flex items-center gap-2">
@@ -31,7 +31,7 @@ export default function RefundPolicyPage() {
           <section>
             <h2 className="text-base font-black text-[#0F2F2E]">1. 15-मिनट SLA कॉलबैक रिफंड गारंटी (15-Minute Callback Guarantee)</h2>
             <p className="mt-1.5">
-              NeighborDoc का प्राथमिक संकल्प त्वरित और विश्वसनीय प्राथमिक चिकित्सा सहायता पहुंचाना है। यदि ₹49/₹99 फीस के सफल भुगतान के <strong>15 मिनट के भीतर</strong> हमारे पंजीकृत डॉक्टर किसी आपातकाल या अप्रत्याशित तकनीकी कारण से आपसे संपर्क नहीं कर पाते हैं, तो:
+              NeighbourDoc का प्राथमिक संकल्प त्वरित और विश्वसनीय प्राथमिक चिकित्सा सहायता पहुंचाना है। यदि ₹49/₹99 फीस के सफल भुगतान के <strong>15 मिनट के भीतर</strong> हमारे पंजीकृत डॉक्टर किसी आपातकाल या अप्रत्याशित तकनीकी कारण से आपसे संपर्क नहीं कर पाते हैं, तो:
             </p>
             <ul className="mt-2 list-disc pl-5 space-y-1 font-medium text-[#0F2F2E]">
               <li>आपकी <strong>100% पूरी फीस बिना किसी सवाल के</strong> स्वतः रिफंड कर दी जाएगी।</li>
@@ -87,7 +87,7 @@ export default function RefundPolicyPage() {
               यदि आपको अपने रिफंड की स्थिति जाननी है, तो आप अपने बुकिंग टोकन नंबर के साथ हमें ईमेल या WhatsApp कर सकते हैं:
             </p>
             <div className="mt-3 rounded-2xl border border-[#D1E6E3] bg-[#F2F8F7] p-4 text-xs">
-              <p><strong>ईमेल:</strong> <span className="font-semibold text-[#0B4F48]">refunds@neighbordoc.in</span></p>
+              <p><strong>ईमेल:</strong> <span className="font-semibold text-[#0B4F48]">refunds@neighbourdoc.in</span></p>
               <p className="mt-1"><strong>कस्टमर केयर:</strong> <span className="font-semibold text-[#0B4F48]">+91 97111 11111</span> (सुबह 8:00 से रात 10:00 बजे तक)</p>
               <p className="mt-1"><strong>संचालक कंपनी:</strong> Qsura India Pvt. Ltd.</p>
             </div>

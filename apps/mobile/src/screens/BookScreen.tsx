@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { detectEmergency, getConsultationPrice, type ConsultationPlan, type Language } from "@neighbordoc/shared";
+import { detectEmergency, getConsultationPrice, type ConsultationPlan, type Language } from "@neighbourdoc/shared";
 
 export function BookScreen({
   initialName,

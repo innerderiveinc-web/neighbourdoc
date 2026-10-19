@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { Language } from "@neighbordoc/shared";
+import type { Language } from "@neighbourdoc/shared";
 
 import { LanguageScreen } from "./src/screens/LanguageScreen";
 import { OtpScreen } from "./src/screens/OtpScreen";
@@ -36,7 +36,7 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.container}>
         {/* App Header */}
         <View style={styles.header}>
-          <Text style={styles.brand}>NeighborDoc</Text>
+          <Text style={styles.brand}>NeighbourDoc</Text>
           <TouchableOpacity onPress={() => setActiveTab("Language")} style={styles.langPill}>
             <Text style={styles.langPillText}>🌐 {language}</Text>
           </TouchableOpacity>

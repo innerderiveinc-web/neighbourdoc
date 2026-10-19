@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
     <div className="min-h-screen bg-[#FAFBF9] py-12 px-4 sm:px-6">
       <main className="mx-auto max-w-3xl rounded-3xl border border-[#D1E6E3] bg-white p-6 sm:p-10 shadow-sm text-[#1E293B]">
         <Link href="/" className="text-xs font-bold text-[#0B4F48] hover:underline">
-          &larr; NeighborDoc होमपेज पर वापस जाएं
+          &larr; NeighbourDoc होमपेज पर वापस जाएं
         </Link>
 
         <h1 className="mt-4 text-3xl font-black text-[#0B4F48]">
@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-base font-black text-[#0F2F2E]">1. हमारी प्रतिबद्धता (Our Commitment)</h2>
             <p className="mt-1.5">
-              NeighborDoc पर हम समझते हैं कि आपकी सेहत और बीमारी से जुड़ी जानकारी अत्यंत व्यक्तिगत और संवेदनशील होती है। हम आपके द्वारा साझा किए गए हर एक विवरण (जैसे नाम, फोन नंबर, उम्र, लक्षण और डॉक्टरों द्वारा जारी पर्चे) की सुरक्षा व गोपनीयता को भारत सरकार के DPDP अधिनियम (डिजिटल पर्सनल डेटा प्रोटेक्शन एक्ट 2023) और टेलीमेडिसिन प्रैक्टिस गाइडलाइन्स के तहत उच्चतम चिकित्सा मानकों व एंड-टू-एंड एन्क्रिप्शन के साथ सुरक्षित रखते हैं।
+              NeighbourDoc पर हम समझते हैं कि आपकी सेहत और बीमारी से जुड़ी जानकारी अत्यंत व्यक्तिगत और संवेदनशील होती है। हम आपके द्वारा साझा किए गए हर एक विवरण (जैसे नाम, फोन नंबर, उम्र, लक्षण और डॉक्टरों द्वारा जारी पर्चे) की सुरक्षा व गोपनीयता को भारत सरकार के DPDP अधिनियम (डिजिटल पर्सनल डेटा प्रोटेक्शन एक्ट 2023) और टेलीमेडिसिन प्रैक्टिस गाइडलाइन्स के तहत उच्चतम चिकित्सा मानकों व एंड-टू-एंड एन्क्रिप्शन के साथ सुरक्षित रखते हैं।
             </p>
           </section>
 
@@ -49,7 +49,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-base font-black text-[#0F2F2E]">5. डेटा फिड्यूशरी व कॉर्पोरेट स्वामित्व (Data Fiduciary &amp; Ownership)</h2>
             <p className="mt-1.5">
-              DPDP अधिनियम 2023 के तहत NeighborDoc प्लेटफॉर्म का संचालन और डेटा प्रबंधन <strong>Qsura India Pvt. Ltd. (क्युसुरा इंडिया प्राइवेट लिमिटेड)</strong> द्वारा किया जाता है। सभी डेटा सुरक्षा व गोपनीयता नीतियां Qsura India Pvt. Ltd. द्वारा सीधे नियंत्रित और सुरक्षित रखी जाती हैं।
+              DPDP अधिनियम 2023 के तहत NeighbourDoc प्लेटफॉर्म का संचालन और डेटा प्रबंधन <strong>Qsura India Pvt. Ltd. (क्युसुरा इंडिया प्राइवेट लिमिटेड)</strong> द्वारा किया जाता है। सभी डेटा सुरक्षा व गोपनीयता नीतियां Qsura India Pvt. Ltd. द्वारा सीधे नियंत्रित और सुरक्षित रखी जाती हैं।
             </p>
           </section>
 
@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
             <p className="mt-1.5">
               यदि आपकी निजता को लेकर कोई भी प्रश्न या शिकायत हो, तो आप Qsura India Pvt. Ltd. की ग्रीवेंस टीम से संपर्क कर सकते हैं:
               <br />
-              ईमेल: <span className="font-semibold text-[#0B4F48]">privacy@neighbordoc.in</span>
+              ईमेल: <span className="font-semibold text-[#0B4F48]">privacy@neighbourdoc.in</span>
             </p>
           </section>
         </div>

@@ -1,6 +1,6 @@
 # Architecture
 
-NeighborDoc uses a modular monorepo so patient, doctor, admin, and mobile clients share the same business rules.
+NeighbourDoc uses a modular monorepo so patient, doctor, admin, and mobile clients share the same business rules.
 
 ```mermaid
 flowchart TD

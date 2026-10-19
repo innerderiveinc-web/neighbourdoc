@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "NeighborDoc",
-    "slug": "neighbordoc",
-    "scheme": "neighbordoc",
+    "name": "NeighbourDoc",
+    "slug": "neighbourdoc",
+    "scheme": "neighbourdoc",
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": ["android", "ios"],
     "ios": {
-      "bundleIdentifier": "com.neighbordoc.app",
+      "bundleIdentifier": "com.neighbourdoc.app",
       "supportsTablet": false
     },
     "android": {
-      "package": "com.neighbordoc.app",
+      "package": "com.neighbourdoc.app",
       "adaptiveIcon": {
         "backgroundColor": "#0E9F6E"
       }

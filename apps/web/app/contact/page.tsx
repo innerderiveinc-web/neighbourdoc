@@ -8,7 +8,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-[#FAFBF9] py-12 px-4 sm:px-6">
       <main className="mx-auto max-w-4xl rounded-3xl border border-[#D1E6E3] bg-white p-6 sm:p-10 shadow-sm text-[#1E293B]">
         <Link href="/" className="text-xs font-bold text-[#0B4F48] hover:underline">
-          &larr; NeighborDoc होमपेज पर वापस जाएं
+          &larr; NeighbourDoc होमपेज पर वापस जाएं
         </Link>
 
         <div className="mt-4 flex items-center gap-2">
@@ -22,7 +22,7 @@ export default function ContactPage() {
           संपर्क करें व शिकायत निवारण (Contact &amp; Grievance)
         </h1>
         <p className="mt-2 text-xs text-[#64748B]">
-          NeighborDoc एक टेलीहेल्थ पहल है, जिसका संचालन <strong>Qsura India Pvt. Ltd. (क्युसुरा इंडिया प्राइवेट लिमिटेड)</strong> द्वारा किया जाता है।
+          NeighbourDoc एक टेलीहेल्थ पहल है, जिसका संचालन <strong>Qsura India Pvt. Ltd. (क्युसुरा इंडिया प्राइवेट लिमिटेड)</strong> द्वारा किया जाता है।
         </p>
 
         {/* Emergency Notice */}
@@ -61,7 +61,7 @@ export default function ContactPage() {
                 <span className="text-base">✉️</span>
                 <div>
                   <p className="font-bold text-[#0F2F2E]">सामान्य ईमेल:</p>
-                  <p className="font-semibold text-[#0B4F48]">support@neighbordoc.in</p>
+                  <p className="font-semibold text-[#0B4F48]">support@neighbourdoc.in</p>
                 </div>
               </div>
 
@@ -69,7 +69,7 @@ export default function ContactPage() {
                 <span className="text-base">💰</span>
                 <div>
                   <p className="font-bold text-[#0F2F2E]">रिफंड डेस्क:</p>
-                  <p className="font-semibold text-[#0B4F48]">refunds@neighbordoc.in</p>
+                  <p className="font-semibold text-[#0B4F48]">refunds@neighbourdoc.in</p>
                 </div>
               </div>
             </div>
@@ -88,7 +88,7 @@ export default function ContactPage() {
 
               <div>
                 <p className="font-bold text-[#0F2F2E]">ईमेल:</p>
-                <p className="font-semibold text-[#0B4F48]">grievance@neighbordoc.in</p>
+                <p className="font-semibold text-[#0B4F48]">grievance@neighbourdoc.in</p>
                 <p className="text-[10px] text-[#64748B]">सभी शिकायतों का 48 घंटे के भीतर समाधान</p>
               </div>
 

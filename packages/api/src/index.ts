@@ -13,7 +13,7 @@ import {
   type SystemSettings,
   type UrgencyLevel,
   type UserRole
-} from "@neighbordoc/shared";
+} from "@neighbourdoc/shared";
 
 // ---------------------------------------------------------
 // Types & DTOs
@@ -253,7 +253,7 @@ export type TelephonyBridge = {
 
 const nowIso = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-const getJwtSecret = () => process.env.JWT_SECRET || "neighbordoc-super-secret-production-key-32chars";
+const getJwtSecret = () => process.env.JWT_SECRET || "neighbourdoc-super-secret-production-key-32chars";
 
 export function createJwtToken(
   payload: Omit<AuthTokenPayload, "iat" | "exp">,
@@ -339,10 +339,10 @@ export function verifyOtp(input: VerifyOtpInput, role: UserRole = "patient", nam
     name ??
     input.name ??
     (effectiveRole === "admin"
-      ? "NeighborDoc Operations Admin"
+      ? "NeighbourDoc Operations Admin"
       : effectiveRole === "doctor"
       ? "Dr. Priya Sharma"
-      : "NeighborDoc Patient");
+      : "NeighbourDoc Patient");
 
   const sessionToken = createJwtToken({
     sub: `user_${input.phone.replace(/\D/g, "")}`,
@@ -413,8 +413,8 @@ export function prepareConsultation(input: CreateConsultationInput, doctors: Doc
 export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hindi" | "English") {
   const messages: Record<WhatsAppTemplate, Record<"Hindi" | "English", string>> = {
     booking_started: {
-      English: "Namaste! Your consultation request has been received by NeighborDoc. We are connecting you with a verified MBBS doctor.",
-      Hindi: "नमस्ते! NeighborDoc पर आपका परामर्श अनुरोध प्राप्त हो गया है। हम आपके लिए डॉक्टर नियुक्त कर रहे हैं।"
+      English: "Namaste! Your consultation request has been received by NeighbourDoc. We are connecting you with a verified MBBS doctor.",
+      Hindi: "नमस्ते! NeighbourDoc पर आपका परामर्श अनुरोध प्राप्त हो गया है। हम आपके लिए डॉक्टर नियुक्त कर रहे हैं।"
     },
     payment_successful: {
       English: "Namaste! Your consultation fee has been received. Your doctor consultation will begin shortly.",
@@ -437,8 +437,8 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
       Hindi: "नमस्ते! आशा है डॉक्टर से बातचीत के बाद आप बेहतर महसूस कर रहे हैं। कृपया 30 सेकंड में अपना अनुभव साझा करें।"
     },
     follow_up_reminder: {
-      English: "Namaste! This is a health check-in from NeighborDoc. If your symptoms persist or if you have any questions, our doctors are here to help.",
-      Hindi: "नमस्ते! NeighborDoc से आपकी सेहत की खैरियत का संदेश है। यदि तकलीफ़ अभी भी बनी हुई है, तो तुरंत डॉक्टर से दोबारा सलाह लें।"
+      English: "Namaste! This is a health check-in from NeighbourDoc. If your symptoms persist or if you have any questions, our doctors are here to help.",
+      Hindi: "नमस्ते! NeighbourDoc से आपकी सेहत की खैरियत का संदेश है। यदि तकलीफ़ अभी भी बनी हुई है, तो तुरंत डॉक्टर से दोबारा सलाह लें।"
     }
   };
 
@@ -449,7 +449,7 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
 // Core Factory: Persistent Multi-Tenant API Engine
 // ---------------------------------------------------------
 
-export type NeighborDocState = {
+export type NeighbourDocState = {
   settings?: SystemSettings;
   users: DemoUser[];
   patients: DemoPatient[];
@@ -466,6 +466,7 @@ export type NeighborDocState = {
   notifications: DemoNotification[];
   telephonyBridges: TelephonyBridge[];
 };
+export type NeighborDocState = NeighbourDocState;
 
 export function getDefaultSettings(): SystemSettings {
   return {
@@ -486,10 +487,12 @@ export function getDefaultSettings(): SystemSettings {
 
 export function createDemoApi(persistencePath?: string) {
   const isTestMode = process.env.NODE_ENV === "test";
+  const defaultFilePath = path.join(process.cwd(), ".data", "neighbourdoc_state.json");
+  const legacyFilePath = path.join(process.cwd(), ".data", "neighbordoc_state.json");
   const filePath =
     persistencePath === ":memory:" || (isTestMode && !persistencePath)
       ? null
-      : persistencePath ?? path.join(process.cwd(), ".data", "neighbordoc_state.json");
+      : persistencePath ?? (fs.existsSync(legacyFilePath) && !fs.existsSync(defaultFilePath) ? legacyFilePath : defaultFilePath);
 
   function getInitialDoctors(): DemoDoctor[] {
     return [
@@ -538,14 +541,14 @@ export function createDemoApi(persistencePath?: string) {
 
   function getInitialUsers(): DemoUser[] {
     return [
-      { id: "user_admin_1", name: "NeighborDoc Operations Admin", phone: "+919999999999", role: "admin", language: "English", createdAt: nowIso() },
+      { id: "user_admin_1", name: "NeighbourDoc Operations Admin", phone: "+919999999999", role: "admin", language: "English", createdAt: nowIso() },
       { id: "user_doctor_1", name: "डॉ. प्रिया शर्मा", phone: "+919800000001", role: "doctor", language: "Hindi", createdAt: nowIso() },
       { id: "user_doctor_2", name: "डॉ. राहुल वर्मा", phone: "+919800000002", role: "doctor", language: "Hindi", createdAt: nowIso() }
     ];
   }
 
   // Load state from file if exists
-  let state: NeighborDocState = {
+  let state: NeighbourDocState = {
     settings: getDefaultSettings(),
     users: getInitialUsers(),
     patients: [],

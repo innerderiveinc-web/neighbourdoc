@@ -1,5 +1,5 @@
 {
-  "name": "@neighbordoc/mobile",
+  "name": "@neighbourdoc/mobile",
   "version": "1.0.0",
   "private": true,
   "main": "App.tsx",
@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@neighbordoc/shared": "1.0.0",
+    "@neighbourdoc/shared": "1.0.0",
     "expo": "^55.0.23",
     "expo-notifications": "^55.0.22",
     "expo-status-bar": "^2.0.0",

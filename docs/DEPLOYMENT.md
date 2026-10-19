@@ -10,7 +10,7 @@ Deploy these apps to Vercel:
 
 Set the root directory per Vercel project and include shared workspace packages.
 
-For the current local MVP, `apps/web` hosts the executable API route handlers. `apps/admin` and `apps/doctor` proxy `/api/*` to the patient/API app through `NEIGHBORDOC_API_ORIGIN`.
+For the current local MVP, `apps/web` hosts the executable API route handlers. `apps/admin` and `apps/doctor` proxy `/api/*` to the patient/API app through `NEIGHBOURDOC_API_ORIGIN`.
 
 ## Backend
 
@@ -44,8 +44,8 @@ Configure:
 
 - `EXPO_PUBLIC_API_BASE_URL`
 - push notification credentials
-- Android package `com.neighbordoc.app`
-- iOS bundle `com.neighbordoc.app`
+- Android package `com.neighbourdoc.app`
+- iOS bundle `com.neighbourdoc.app`
 
 ## Security
 
@@ -70,4 +70,4 @@ Set these in Vercel or your backend host:
 - `WHATSAPP_PROVIDER`
 - `WHATSAPP_ACCESS_TOKEN`
 - `WHATSAPP_PHONE_NUMBER_ID`
-- `NEIGHBORDOC_API_ORIGIN` for admin/doctor proxying
+- `NEIGHBOURDOC_API_ORIGIN` for admin/doctor proxying

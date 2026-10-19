@@ -10,7 +10,7 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   });
 
   if (!response.ok) {
-    throw new Error(`NeighborDoc API error ${response.status}`);
+    throw new Error(`NeighbourDoc API error ${response.status}`);
   }
 
   return response.json() as Promise<T>;

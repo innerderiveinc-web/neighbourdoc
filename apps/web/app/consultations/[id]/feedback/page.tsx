@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { Surface, PrimaryButton } from "@neighbordoc/ui";
+import { Surface, PrimaryButton } from "@neighbourdoc/ui";
 
 export default function FeedbackPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -49,7 +49,7 @@ export default function FeedbackPage({ params }: { params: Promise<{ id: string 
             <div className="text-4xl">🙏</div>
             <h1 className="mt-3 text-xl font-black text-[#0F2F2E]">आपकी राय के लिए धन्यवाद!</h1>
             <p className="mt-2 text-xs text-[#64748B] leading-relaxed">
-              NeighborDoc और Qsura India Pvt. Ltd. आपकी प्रतिक्रिया की कद्र करते हैं। इससे हमें ग्रामीण और कस्बाई परिवारों को और बेहतर स्वास्थ्य सेवाएं देने में मदद मिलती है।
+              NeighbourDoc और Qsura India Pvt. Ltd. आपकी प्रतिक्रिया की कद्र करते हैं। इससे हमें ग्रामीण और कस्बाई परिवारों को और बेहतर स्वास्थ्य सेवाएं देने में मदद मिलती है।
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
               <Link

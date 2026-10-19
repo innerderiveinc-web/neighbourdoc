@@ -1,11 +1,11 @@
 {
-  "name": "@neighbordoc/api",
+  "name": "@neighbourdoc/api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@neighbordoc/database": "1.0.0",
-    "@neighbordoc/shared": "1.0.0"
+    "@neighbourdoc/database": "1.0.0",
+    "@neighbourdoc/shared": "1.0.0"
   }
 }

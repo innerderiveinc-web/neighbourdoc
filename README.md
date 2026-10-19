@@ -1,14 +1,14 @@
-# NeighborDoc Production Monorepo
+# NeighbourDoc Production Monorepo
 *Developed &amp; Engineered by **Qsura India Pvt. Ltd.***
 
-NeighborDoc is a low-cost, WhatsApp-first, hyperlocal healthcare consultation platform for India, built and operated by **Qsura India Pvt. Ltd.**
+NeighbourDoc is a low-cost, WhatsApp-first, hyperlocal healthcare consultation platform for India, built and operated by **Qsura India Pvt. Ltd.**
 
 Positioning: **Doctor consultation in 15 minutes — starting at ₹49.**
 
 ## Monorepo Structure
 
 ```text
-neighbordoc/
+neighbourdoc/
   apps/
     web/      Patient responsive PWA
     admin/    SaaS admin panel

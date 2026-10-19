@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getConsultationPrice } from "@neighbordoc/shared";
+import { getConsultationPrice } from "@neighbourdoc/shared";
 import { BookingForm } from "./booking-form";
 
 const verifiedDoctors = [
@@ -30,7 +30,7 @@ const patientStories = [
     name: "सुनीता देवी",
     place: "अलीगंज, लखनऊ",
     issue: "3 दिन से तेज़ बुखार व खाँसी",
-    comment: "सरकारी अस्पताल में 4 घंटे लाइन लगती। NeighborDoc पर 10 मिनट में डॉक्टर साहिबा का फोन आया, पूरा हाल सुना और सही दवा का पर्चा दिया। बहुत आराम मिला।",
+    comment: "सरकारी अस्पताल में 4 घंटे लाइन लगती। NeighbourDoc पर 10 मिनट में डॉक्टर साहिबा का फोन आया, पूरा हाल सुना और सही दवा का पर्चा दिया। बहुत आराम मिला।",
     rating: 5
   },
   {
@@ -52,7 +52,7 @@ const patientStories = [
 const faqs = [
   {
     q: "क्या ₹49 में सचमुच असली MBBS डॉक्टर बात करेंगे?",
-    a: "हाँ, बिल्कुल। NeighborDoc पर सभी डॉक्टर नेशनल मेडिकल कमीशन (NMC) से रजिस्टर्ड और वेरिफाइड MBBS/MD डॉक्टर हैं। पर्चे पर डॉक्टर का नाम और मेडिकल काउंसिल रजिस्ट्रेशन नंबर लिखा होता है।"
+    a: "हाँ, बिल्कुल। NeighbourDoc पर सभी डॉक्टर नेशनल मेडिकल कमीशन (NMC) से रजिस्टर्ड और वेरिफाइड MBBS/MD डॉक्टर हैं। पर्चे पर डॉक्टर का नाम और मेडिकल काउंसिल रजिस्ट्रेशन नंबर लिखा होता है।"
   },
   {
     q: "डॉक्टर मुझसे कैसे और कितनी देर में संपर्क करेंगे?",
@@ -93,7 +93,7 @@ export default function PatientHome() {
               +
             </div>
             <div>
-              <p className="text-xl font-black tracking-tight text-[#0B4F48]">NeighborDoc</p>
+              <p className="text-xl font-black tracking-tight text-[#0B4F48]">NeighbourDoc</p>
               <p className="text-[11px] font-bold text-[#107569] leading-none">आपका अपना डिजिटल फैमिली डॉक्टर</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function PatientHome() {
               आसान और पारदर्शी प्रक्रिया
             </span>
             <h2 className="mt-3 text-3xl font-black text-[#0F2F2E] sm:text-4xl">
-              NeighborDoc कैसे काम करता है?
+              NeighbourDoc कैसे काम करता है?
             </h2>
             <p className="mt-2 text-sm text-[#64748B]">
               कोई ऐप डाउनलोड नहीं, कोई झंझट नहीं — बस 3 आसान कदम:
@@ -234,12 +234,12 @@ export default function PatientHome() {
         </div>
       </section>
 
-      {/* Comparison: NeighborDoc vs Chemist Counter */}
+      {/* Comparison: NeighbourDoc vs Chemist Counter */}
       <section className="py-16 bg-[#F4F7F6]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto">
             <h2 className="text-3xl font-black text-[#0F2F2E]">
-              केमिस्ट से बिना पर्चे की दवा बनाम NeighborDoc
+              केमिस्ट से बिना पर्चे की दवा बनाम NeighbourDoc
             </h2>
             <p className="mt-2 text-sm text-[#64748B]">
               जानिए क्यों छोटी बीमारी में भी डॉक्टर की राय लेना आपके परिवार के लिए सुरक्षित है
@@ -252,7 +252,7 @@ export default function PatientHome() {
                 <tr>
                   <th className="p-4 sm:p-5">सुविधा / सुरक्षा</th>
                   <th className="p-4 sm:p-5 text-red-700 bg-red-50/50">मेडिकल स्टोर से दवा</th>
-                  <th className="p-4 sm:p-5 text-[#0B4F48] bg-[#E8F3F1]">NeighborDoc डॉक्टर</th>
+                  <th className="p-4 sm:p-5 text-[#0B4F48] bg-[#E8F3F1]">NeighbourDoc डॉक्टर</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9ECEF]">
@@ -290,7 +290,7 @@ export default function PatientHome() {
               हमारे समर्पित चिकित्सक
             </span>
             <h2 className="mt-3 text-3xl font-black text-[#0F2F2E]">
-              मिलिए अपने NeighborDoc चिकित्सकों से
+              मिलिए अपने NeighbourDoc चिकित्सकों से
             </h2>
             <p className="mt-2 text-sm text-[#64748B]">
               सभी डॉक्टर पूरी तरह जाँचे-परखे और भारत के प्रतिष्ठित मेडिकल कॉलेजों से प्रशिक्षित हैं
@@ -438,7 +438,7 @@ export default function PatientHome() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-6 border-b border-[#E9ECEF] pb-8">
             <div>
-              <p className="text-lg font-black text-[#0B4F48]">NeighborDoc</p>
+              <p className="text-lg font-black text-[#0B4F48]">NeighbourDoc</p>
               <p className="text-xs text-[#64748B]">सुलभ, विश्वसनीय व किफ़ायती प्राथमिक स्वास्थ्य परामर्श</p>
             </div>
             <div className="flex flex-wrap gap-4 text-xs font-bold text-[#0B4F48]">
@@ -451,10 +451,10 @@ export default function PatientHome() {
 
           <div className="mt-6 text-[11px] leading-relaxed text-[#94A3B8]">
             <p>
-              <strong>अस्वीकरण (Medical Disclaimer):</strong> NeighborDoc भारत सरकार के स्वास्थ्य एवं परिवार कल्याण मंत्रालय द्वारा जारी टेलीमेडिसिन प्रैक्टिस गाइडलाइन्स (2020) के अधीन संचालित होता है। यह सेवा सामान्य प्राथमिक परामर्श (Primary Triage) के लिए है और किसी भी गंभीर आपात स्थिति का विकल्प नहीं है। नशीली दवाएं (Schedule X) ऑनलाइन नहीं लिखी जाती हैं।
+              <strong>अस्वीकरण (Medical Disclaimer):</strong> NeighbourDoc भारत सरकार के स्वास्थ्य एवं परिवार कल्याण मंत्रालय द्वारा जारी टेलीमेडिसिन प्रैक्टिस गाइडलाइन्स (2020) के अधीन संचालित होता है। यह सेवा सामान्य प्राथमिक परामर्श (Primary Triage) के लिए है और किसी भी गंभीर आपात स्थिति का विकल्प नहीं है। नशीली दवाएं (Schedule X) ऑनलाइन नहीं लिखी जाती हैं।
             </p>
             <p className="mt-2 flex flex-wrap items-center justify-between gap-2">
-              <span>© {new Date().getFullYear()} NeighborDoc Healthcare Network. All rights reserved.</span>
+              <span>© {new Date().getFullYear()} NeighbourDoc Healthcare Network. All rights reserved.</span>
               <span className="font-semibold text-[#0B4F48]">
                 Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
               </span>

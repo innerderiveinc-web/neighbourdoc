@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { Surface, PrimaryButton } from "@neighbordoc/ui";
+import { Surface, PrimaryButton } from "@neighbourdoc/ui";
 
 type Consultation = {
   id: string;
@@ -127,7 +127,7 @@ export default function ConsultationStatusPage({ params }: { params: Promise<{ i
       <main className="mx-auto max-w-xl">
         <div className="mb-4">
           <Link href="/" className="text-xs font-bold text-[#0B4F48] hover:underline">
-            &larr; NeighborDoc होमपेज
+            &larr; NeighbourDoc होमपेज
           </Link>
         </div>
 

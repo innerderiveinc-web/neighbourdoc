@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { Language } from "@neighbordoc/shared";
+import type { Language } from "@neighbourdoc/shared";
 
 export function ProfileScreen({
   phone,

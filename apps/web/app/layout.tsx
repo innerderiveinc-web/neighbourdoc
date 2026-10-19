@@ -1,11 +1,11 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "NeighborDoc — आपका अपना डिजिटल फैमिली डॉक्टर | ₹49 में MBBS परामर्श",
+  title: "NeighbourDoc — आपका अपना डिजिटल फैमिली डॉक्टर | ₹49 में MBBS परामर्श",
   description: "15 मिनट में NMC वेरिफाइड MBBS डॉक्टर से सीधा फोन कॉल परामर्श व कानूनी डिजिटल पर्चा (Rx)। बुखार, खांसी, पेट दर्द के लिए सुरक्षित प्राथमिक स्वास्थ्य सेवा।",
-  keywords: ["NeighborDoc", "Telemedicine India", "Online Doctor ₹49", "MBBS Doctor Consultation", "Digital Prescription", "Jan Aushadhi"],
+  keywords: ["NeighbourDoc", "Telemedicine India", "Online Doctor ₹49", "MBBS Doctor Consultation", "Digital Prescription", "Jan Aushadhi"],
   openGraph: {
-    title: "NeighborDoc — 15 मिनट में डॉक्टर कॉलबैक (₹49)",
+    title: "NeighbourDoc — 15 मिनट में डॉक्टर कॉलबैक (₹49)",
     description: "घर बैठे NMC वेरिफाइड MBBS डॉक्टर से सही सलाह और कानूनी डिजिटल पर्चा पाएं।",
     type: "website",
     locale: "hi_IN"

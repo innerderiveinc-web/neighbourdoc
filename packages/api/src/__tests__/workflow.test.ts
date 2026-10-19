@@ -133,7 +133,7 @@ test("manages doctors, organizations, and outbound notification records", () => 
   });
 
   assert.equal(notification.status, "queued");
-  assert.match(notification.message, /NeighborDoc/);
+  assert.match(notification.message, /NeighbourDoc/);
 
   // Test getDoctor
   const fetchedDoctor = api.getDoctor(doctor.id);

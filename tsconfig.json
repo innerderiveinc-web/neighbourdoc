@@ -13,6 +13,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
+      "@neighbourdoc/shared": ["packages/shared/src/index.ts"],
+      "@neighbourdoc/shared/*": ["packages/shared/src/*"],
+      "@neighbourdoc/api": ["packages/api/src/index.ts"],
+      "@neighbourdoc/api/*": ["packages/api/src/*"],
+      "@neighbourdoc/ui": ["packages/ui/src/index.ts"],
+      "@neighbourdoc/ui/*": ["packages/ui/src/*"],
       "@neighbordoc/shared": ["packages/shared/src/index.ts"],
       "@neighbordoc/shared/*": ["packages/shared/src/*"],
       "@neighbordoc/api": ["packages/api/src/index.ts"],
@@ -22,5 +28,16 @@
     },
     "noEmit": true
   },
-  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "packages/**/*.tsx", "vitest.config.ts"]
+  "include": [
+    "apps/web/**/*.ts",
+    "apps/web/**/*.tsx",
+    "apps/admin/**/*.ts",
+    "apps/admin/**/*.tsx",
+    "apps/doctor/**/*.ts",
+    "apps/doctor/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "vitest.config.ts"
+  ],
+  "exclude": ["apps/mobile", "node_modules"]
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PrimaryButton, Surface } from "@neighbordoc/ui";
+import { PrimaryButton, Surface } from "@neighbourdoc/ui";
 
 type BookingResult =
   | { status: "idle" }

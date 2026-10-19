@@ -41,7 +41,7 @@ export default function NotFound() {
         </div>
 
         <p className="mt-6 text-[10px] text-[#94A3B8]">
-          NeighborDoc · Powered by Qsura India Pvt. Ltd.
+          NeighbourDoc · Powered by Qsura India Pvt. Ltd.
         </p>
       </main>
     </div>

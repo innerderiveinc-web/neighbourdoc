@@ -1,5 +1,5 @@
 {
-  "name": "neighbordoc",
+  "name": "neighbourdoc",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,16 +7,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "npm --workspace @neighbordoc/web run dev",
-    "dev:admin": "npm --workspace @neighbordoc/admin run dev",
-    "dev:doctor": "npm --workspace @neighbordoc/doctor run dev",
-    "dev:mobile": "npm --workspace @neighbordoc/mobile run start",
+    "dev:web": "npm --workspace @neighbourdoc/web run dev",
+    "dev:admin": "npm --workspace @neighbourdoc/admin run dev",
+    "dev:doctor": "npm --workspace @neighbourdoc/doctor run dev",
+    "dev:mobile": "npm --workspace @neighbourdoc/mobile run start",
     "test": "NODE_ENV=test node --test packages/shared/src/__tests__/*.test.ts packages/api/src/__tests__/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm --workspace @neighbourdoc/mobile run typecheck",
     "build": "npm run build:web",
-    "build:web": "npm --workspace @neighbordoc/web run build",
-    "build:admin": "npm --workspace @neighbordoc/admin run build",
-    "build:doctor": "npm --workspace @neighbordoc/doctor run build",
+    "build:web": "npm --workspace @neighbourdoc/web run build",
+    "build:admin": "npm --workspace @neighbourdoc/admin run build",
+    "build:doctor": "npm --workspace @neighbourdoc/doctor run build",
     "prisma:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
     "seed": "tsx --env-file=.env packages/database/src/seed.ts",

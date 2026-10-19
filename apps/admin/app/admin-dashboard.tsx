@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MetricCard, PrimaryButton, Surface } from "@neighbordoc/ui";
+import { MetricCard, PrimaryButton, Surface } from "@neighbourdoc/ui";
 
 type Metrics = {
   totalConsultations: number;
@@ -69,8 +69,12 @@ export function AdminDashboardClient() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState("");
 
+  function getAdminToken() {
+    return localStorage.getItem("neighbourdoc_admin_token") || localStorage.getItem("neighbordoc_admin_token");
+  }
+
   async function refresh() {
-    const token = localStorage.getItem("neighbordoc_admin_token");
+    const token = getAdminToken();
     if (!token) return;
 
     try {
@@ -101,14 +105,14 @@ export function AdminDashboardClient() {
   }
 
   useEffect(() => {
-    const token = localStorage.getItem("neighbordoc_admin_token");
+    const token = getAdminToken();
     if (token) {
       setIsAdminAuth(true);
       void refresh();
     }
 
     const interval = setInterval(() => {
-      const activeToken = localStorage.getItem("neighbordoc_admin_token");
+      const activeToken = getAdminToken();
       if (activeToken) {
         void refresh();
       }
@@ -143,8 +147,9 @@ export function AdminDashboardClient() {
     const data = await res.json();
     if (data.ok && data.sessionToken) {
       setIsAdminAuth(true);
+      localStorage.setItem("neighbourdoc_admin_token", data.sessionToken);
+      localStorage.setItem("neighbourdoc_admin_session", "true");
       localStorage.setItem("neighbordoc_admin_token", data.sessionToken);
-      localStorage.setItem("neighbordoc_admin_session", "true");
       void refresh();
     } else {
       setAuthError(data.error ?? "अमान्य OTP कोड।");
@@ -152,6 +157,8 @@ export function AdminDashboardClient() {
   }
 
   function handleLogout() {
+    localStorage.removeItem("neighbourdoc_admin_token");
+    localStorage.removeItem("neighbourdoc_admin_session");
     localStorage.removeItem("neighbordoc_admin_token");
     localStorage.removeItem("neighbordoc_admin_session");
     setIsAdminAuth(false);
@@ -160,7 +167,7 @@ export function AdminDashboardClient() {
 
   async function handleSaveSettings(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    const token = localStorage.getItem("neighbordoc_admin_token");
+    const token = getAdminToken();
     if (!token) return;
 
     setSavingSettings(true);
@@ -204,7 +211,7 @@ export function AdminDashboardClient() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `neighbordoc-admin-audit-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `neighbourdoc-admin-audit-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -218,7 +225,7 @@ export function AdminDashboardClient() {
             <span className="inline-block rounded-full bg-[#0F172A] px-3 py-1 text-xs font-black uppercase tracking-wider text-white">
               सुरक्षित एडमिनिस्ट्रेशन
             </span>
-            <h1 className="mt-3 text-2xl font-black text-[#0F172A]">NeighborDoc ऑपरेशंस</h1>
+            <h1 className="mt-3 text-2xl font-black text-[#0F172A]">NeighbourDoc ऑपरेशंस</h1>
             <p className="mt-1 text-xs text-[#64748B]">मरीज़ कॉलबैक, राजस्व व डॉक्टर निगरानी डैशबोर्ड</p>
           </div>
 
@@ -749,7 +756,7 @@ export function AdminDashboardClient() {
       )}
 
       <footer className="mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8]">
-        NeighborDoc Operations Platform · Developed &amp; Maintained by <strong>Qsura India Pvt. Ltd.</strong>
+        NeighbourDoc Operations Platform · Developed &amp; Maintained by <strong>Qsura India Pvt. Ltd.</strong>
       </footer>
     </main>
   );

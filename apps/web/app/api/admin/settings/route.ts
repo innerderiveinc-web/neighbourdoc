@@ -1,5 +1,5 @@
 import { api, ok, readJson, requireRole } from "../../_server";
-import type { SystemSettings } from "@neighbordoc/shared";
+import type { SystemSettings } from "@neighbourdoc/shared";
 
 export async function GET(request: Request) {
   const guard = requireRole(request, ["admin", "superadmin"]);

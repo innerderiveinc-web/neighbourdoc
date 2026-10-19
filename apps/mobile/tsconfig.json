@@ -1,8 +1,26 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@neighbourdoc/shared": ["../../packages/shared/src/index.ts"],
+      "@neighbourdoc/shared/*": ["../../packages/shared/src/*"],
+      "@neighbordoc/shared": ["../../packages/shared/src/index.ts"],
+      "@neighbordoc/shared/*": ["../../packages/shared/src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
+    }
   },
   "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx"]
 }

@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { Surface } from "@neighbordoc/ui";
+import { Surface } from "@neighbourdoc/ui";
 
 type Consultation = {
   id: string;
@@ -135,7 +135,7 @@ export default function PrescriptionPage({ params }: { params: Promise<{ id: str
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0B4F48] hover:underline"
         >
-          &larr; NeighborDoc होमपेज
+          &larr; NeighbourDoc होमपेज
         </Link>
         <div className="flex gap-2.5">
           <button
@@ -157,7 +157,7 @@ export default function PrescriptionPage({ params }: { params: Promise<{ id: str
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#0B4F48] text-white font-black text-base">
                   +
                 </span>
-                <h1 className="text-2xl font-black tracking-tight text-[#0B4F48]">NeighborDoc</h1>
+                <h1 className="text-2xl font-black tracking-tight text-[#0B4F48]">NeighbourDoc</h1>
               </div>
               <p className="mt-1 text-xs font-bold text-[#107569]">
                 प्राथमिक स्वास्थ्य सेवा नेटवर्क · Primary Healthcare Care Network

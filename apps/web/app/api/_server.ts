@@ -1,12 +1,12 @@
-import { createDemoApi, verifyJwtToken, type AuthTokenPayload } from "@neighbordoc/api";
-import type { UserRole } from "@neighbordoc/shared";
+import { createDemoApi, verifyJwtToken, type AuthTokenPayload } from "@neighbourdoc/api";
+import type { UserRole } from "@neighbourdoc/shared";
 
-const globalForNeighborDoc = globalThis as unknown as {
-  __neighborDocApi?: ReturnType<typeof createDemoApi>;
+const globalForNeighbourDoc = globalThis as unknown as {
+  __neighbourDocApi?: ReturnType<typeof createDemoApi>;
 };
 
-export const api = globalForNeighborDoc.__neighborDocApi ?? createDemoApi();
-globalForNeighborDoc.__neighborDocApi = api;
+export const api = globalForNeighbourDoc.__neighbourDocApi ?? createDemoApi();
+globalForNeighbourDoc.__neighbourDocApi = api;
 
 export async function readJson<T = Record<string, unknown>>(request: Request): Promise<T> {
   try {
@@ -31,10 +31,10 @@ export function getAuthToken(request: Request): string | null {
     return authHeader.slice(7).trim();
   }
 
-  // Cookie fallback
+  // Cookie fallback (supports both neighbourdoc and neighbordoc)
   const cookieHeader = request.headers.get("cookie");
   if (cookieHeader) {
-    const match = cookieHeader.match(/neighbordoc_session=([^;]+)/);
+    const match = cookieHeader.match(/(?:neighbourdoc|neighbordoc)_session=([^;]+)/);
     if (match?.[1]) return match[1];
   }
 
