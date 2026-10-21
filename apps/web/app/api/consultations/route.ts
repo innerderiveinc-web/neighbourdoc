@@ -1,5 +1,5 @@
 import { api, fail, ok, readJson, requireAuth } from "../_server";
-import type { BookingInput } from "@neighbourdoc/api";
+import { BookingSchema } from "@neighbourdoc/shared";
 
 export async function GET(request: Request) {
   const guard = requireAuth(request);
@@ -8,11 +8,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await readJson<BookingInput>(request);
-  if (!body.consent) {
-    return fail("Explicit patient consent is required before booking a teleconsultation.", 400);
+  const rawBody = await readJson(request);
+  const parsed = BookingSchema.safeParse(rawBody);
+
+  if (!parsed.success) {
+    const errorMsg = parsed.error.errors[0]?.message || "Invalid booking details provided.";
+    return fail(errorMsg, 400);
   }
-  const result = api.createConsultation(body);
+
+  const result = api.createConsultation(parsed.data);
   const responseInit: ResponseInit = { status: result.ok ? 201 : 409 };
   if (result.ok && result.sessionToken) {
     responseInit.headers = {

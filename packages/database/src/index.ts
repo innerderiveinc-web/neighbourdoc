@@ -22,3 +22,4 @@ export async function isDatabaseConnected(): Promise<boolean> {
 }
 
 export { PrismaClient };
+export { DatabaseRepository } from "./repository";

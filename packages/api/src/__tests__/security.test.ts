@@ -307,3 +307,61 @@ test("SUPPORT WORKFLOW: creates persistent contact and grievance support tickets
   assert.ok(audit);
   assert.equal(audit.entityId, ticketRes.ticketId);
 });
+
+test("SECURITY: enforces multi-tenant organization scoping for partner roles", () => {
+  const api = createDemoApi(":memory:");
+
+  const orgA = api.createOrganization({
+    name: "Acme Logistics",
+    type: "warehouse",
+    city: "Delhi",
+    contactPerson: "HR Lead",
+    phone: "+919877700001",
+    planId: "org_custom"
+  });
+
+  const orgB = api.createOrganization({
+    name: "Globex Corp",
+    type: "office",
+    city: "Mumbai",
+    contactPerson: "Admin Lead",
+    phone: "+919877700002",
+    planId: "org_custom"
+  });
+
+  const partnerActorA: AuthTokenPayload = {
+    sub: "user_partner_a",
+    phone: "+919877700001",
+    role: "partner",
+    organizationId: orgA.id
+  };
+
+  // Partner A can add member to Org A
+  const memberA = api.addOrganizationMember(
+    orgA.id,
+    {
+      name: "Ravi Kumar",
+      phone: "+919877711111",
+      employeeCode: "EMP-001"
+    },
+    partnerActorA
+  );
+  assert.equal(memberA.organizationId, orgA.id);
+
+  // Partner A is BLOCKED from adding member to Org B
+  assert.throws(
+    () => {
+      api.addOrganizationMember(
+        orgB.id,
+        {
+          name: "Attacker Injected",
+          phone: "+919877722222",
+          employeeCode: "HACK-001"
+        },
+        partnerActorA
+      );
+    },
+    /Forbidden/
+  );
+});
+

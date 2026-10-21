@@ -1502,8 +1502,14 @@ export function createDemoApi(persistencePath?: string) {
     },
     addOrganizationMember(
       organizationId: string,
-      input: { name: string; phone: string; employeeCode: string; age?: number; gender?: string }
+      input: { name: string; phone: string; employeeCode: string; age?: number; gender?: string },
+      actor?: AuthTokenPayload
     ) {
+      if (actor) {
+        if (actor.role === "partner" && actor.organizationId !== organizationId) {
+          throw new Error("Forbidden: You cannot manage members for another organization.");
+        }
+      }
       const organization = state.organizations.find((item) => item.id === organizationId);
       if (!organization) throw new Error("Organization not found.");
       const { patient } = findOrCreatePatient({
