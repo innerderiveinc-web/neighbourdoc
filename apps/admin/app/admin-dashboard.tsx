@@ -203,6 +203,33 @@ export function AdminDashboardClient() {
     }
   }
 
+  async function handleIssueRefund(consultationId: string) {
+    const token = getAdminToken();
+    if (!token) return;
+    const confirmRefund = window.confirm("क्या आप इस परामर्श के लिए 15-मिनट गारंटी रिफंड जारी करना चाहते हैं?");
+    if (!confirmRefund) return;
+
+    try {
+      const res = await fetch(`/api/consultations/${consultationId}/refund`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: "15-minute SLA breach guarantee refund (Admin Executed)" })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("✓ रिफंड सफलतापूर्वक प्रोसेस हो गया है और मरीज़ को सूचित कर दिया गया है।");
+        refresh();
+      } else {
+        alert(`✗ त्रुटि: ${data.error ?? "रिफंड प्रोसेस नहीं हो सका।"}`);
+      }
+    } catch {
+      alert("✗ सर्वर से कनेक्शन विफल रहा।");
+    }
+  }
+
   const exportReport = () => {
     const blob = new Blob(
       [JSON.stringify({ metrics, consultations, performance, settings }, null, 2)],
@@ -386,6 +413,7 @@ export function AdminDashboardClient() {
                       <th className="py-2.5">भुगतान</th>
                       <th className="py-2.5">{settings?.slaCallbackMinutes ?? 15}-Min SLA</th>
                       <th className="py-2.5">शुल्क</th>
+                      <th className="py-2.5 text-right">कार्रवाई (Action)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F1F5F9]">
@@ -398,6 +426,8 @@ export function AdminDashboardClient() {
                             className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold capitalize ${
                               row.status === "completed"
                                 ? "bg-emerald-100 text-emerald-800"
+                                : row.status === "refunded"
+                                ? "bg-rose-100 text-rose-800"
                                 : row.status === "in_consultation"
                                 ? "bg-blue-100 text-blue-800 animate-pulse"
                                 : "bg-amber-100 text-amber-800"
@@ -409,10 +439,10 @@ export function AdminDashboardClient() {
                         <td className="py-3">
                           <span
                             className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              row.paymentStatus === "paid" ? "text-emerald-700" : "text-slate-500"
+                              row.paymentStatus === "paid" ? "text-emerald-700" : row.paymentStatus === "refunded" ? "text-rose-700" : "text-slate-500"
                             }`}
                           >
-                            {row.paymentStatus === "paid" ? "सफल" : "लंबित"}
+                            {row.paymentStatus === "paid" ? "सफल" : row.paymentStatus === "refunded" ? "रिफंडेड" : "लंबित"}
                           </span>
                         </td>
                         <td className="py-3 text-[11px] font-bold text-[#475569]">
@@ -424,11 +454,27 @@ export function AdminDashboardClient() {
                             : "प्रतीक्षा"}
                         </td>
                         <td className="py-3 font-bold text-[#0F172A]">₹{row.amount / 100}</td>
+                        <td className="py-3 text-right">
+                          {row.status === "refunded" ? (
+                            <span className="inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">
+                              रिफंडेड
+                            </span>
+                          ) : row.status !== "completed" && row.callbackDeadline && new Date(row.callbackDeadline).getTime() < Date.now() ? (
+                            <button
+                              onClick={() => handleIssueRefund(row.id)}
+                              className="rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-700 transition shadow-sm"
+                            >
+                              SLA रिफंड करें
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-[#94A3B8]">सामान्य</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {consultations.length === 0 && (
                       <tr>
-                        <td className="py-8 text-center text-[#94A3B8]" colSpan={6}>
+                        <td className="py-8 text-center text-[#94A3B8]" colSpan={7}>
                           अभी कोई परामर्श दर्ज नहीं हुआ है।
                         </td>
                       </tr>

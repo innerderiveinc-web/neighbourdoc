@@ -32,3 +32,19 @@ export async function PATCH(request: Request) {
     return fail(error, 404);
   }
 }
+
+export async function DELETE(request: Request) {
+  const guard = requireAuth(request);
+  if (!guard.authorized) return guard.response;
+
+  try {
+    const isAdmin = guard.user.role === "admin" || guard.user.role === "superadmin";
+    const body = await readJson<{ userId?: string }>(request);
+    const targetUserId = isAdmin && body.userId ? body.userId : guard.user.sub;
+
+    const result = api.anonymizePatientData(targetUserId, guard.user);
+    return ok(result);
+  } catch (error) {
+    return fail(error, 400);
+  }
+}

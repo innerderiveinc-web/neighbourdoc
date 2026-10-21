@@ -280,4 +280,34 @@ export class DatabaseRepository {
       }
     });
   }
+
+  /**
+   * DPDP 2023 Compliant Patient Data Erasure / Anonymization
+   */
+  static async anonymizePatientData(userId: string, actorId: string) {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          name: "Anonymized Patient",
+          phone: `+91000000${userId.slice(-4)}`
+        }
+      });
+      await tx.patientProfile.updateMany({
+        where: { userId },
+        data: {
+          city: "Redacted",
+          locality: "Redacted"
+        }
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: "patient_data_erasure_executed",
+          entityType: "patient",
+          entityId: userId
+        }
+      });
+    });
+  }
 }

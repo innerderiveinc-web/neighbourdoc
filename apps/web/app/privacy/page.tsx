@@ -54,7 +54,14 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-base font-black text-[#0F2F2E]">6. संपर्क व सहायता (Grievance Officer)</h2>
+            <h2 className="text-base font-black text-[#0F2F2E]">6. डेटा मिटाने का अधिकार (Right to Erasure &amp; Medical Retention)</h2>
+            <p className="mt-1.5">
+              डिजिटल व्यक्तिगत डेटा संरक्षण अधिनियम 2023 (DPDP) के तहत मरीजों को अपनी व्यक्तिगत पहचान संबंधी जानकारी को मिटाने (Right to Erasure / Anonymization) का अधिकार प्राप्त है। टेलीमेडिसिन प्रैक्टिस गाइडलाइन्स 2020 के कानूनी अनुपालन अनुसार क्लीनिकल रिकॉर्ड्स 3 वर्षों तक ऑडिट हेतु सुरक्षित रखे जाते हैं, जबकि व्यक्तिगत फोन नंबर, नाम व पहचान को मरीज के अनुरोध पर तत्काल एनोनिमाइज (गुमनाम) कर दिया जाता है। डेटा विलोपन अनुरोध ऐप सेटिंग्स से अथवा <span className="font-semibold text-[#0B4F48]">privacy@neighbourdoc.in</span> पर भेजा जा सकता है।
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-base font-black text-[#0F2F2E]">7. संपर्क व शिकायत निवारण (Grievance Officer)</h2>
             <p className="mt-1.5">
               यदि आपकी निजता को लेकर कोई भी प्रश्न या शिकायत हो, तो आप Qsura India Pvt. Ltd. की ग्रीवेंस टीम से संपर्क कर सकते हैं:
               <br />

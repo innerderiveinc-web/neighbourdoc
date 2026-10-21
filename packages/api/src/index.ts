@@ -915,6 +915,41 @@ export function createDemoApi(persistencePath?: string) {
       saveState();
       return { user, patient };
     },
+    anonymizePatientData(userId: string, actor: AuthTokenPayload) {
+      if (!userId) throw new Error("userId is required.");
+      const isAdmin = actor.role === "admin" || actor.role === "superadmin";
+      if (!isAdmin && actor.sub !== userId) {
+        throw new Error("Forbidden: You cannot erase another patient's data.");
+      }
+
+      const user = state.users.find((item) => item.id === userId);
+      const patient = state.patients.find((item) => item.userId === userId);
+      if (!user && !patient) throw new Error("Patient not found.");
+
+      if (user) {
+        user.name = "Anonymized Patient";
+        user.phone = "+910000000000";
+        delete user.email;
+      }
+
+      if (patient) {
+        patient.city = "Redacted";
+        patient.locality = "Redacted";
+      }
+
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: actor.sub,
+        action: "patient_data_erasure_executed",
+        entityType: "patient",
+        entityId: userId,
+        metadata: { requestedBy: actor.sub, role: actor.role },
+        createdAt: nowIso()
+      });
+
+      saveState();
+      return { ok: true, message: "Patient data successfully anonymized in compliance with DPDP Act 2023." };
+    },
     listDoctors() {
       return state.doctors;
     },
@@ -1404,7 +1439,20 @@ export function createDemoApi(persistencePath?: string) {
       if (actor && !canAccessConsultation(actor, consultation)) {
         return null;
       }
-      return state.prescriptions.find((item) => item.consultationId === consultationId) ?? null;
+      const prescription = state.prescriptions.find((item) => item.consultationId === consultationId) ?? null;
+      if (prescription && actor) {
+        state.auditLogs.push({
+          id: id("audit"),
+          actorId: actor.sub,
+          action: "prescription_accessed",
+          entityType: "prescription",
+          entityId: prescription.id,
+          metadata: { consultationId, role: actor.role },
+          createdAt: nowIso()
+        });
+        saveState();
+      }
+      return prescription;
     },
     executeRefund(consultationId: string, actor: AuthTokenPayload, reason: string) {
       if (actor.role !== "admin" && actor.role !== "superadmin") {
@@ -1562,6 +1610,12 @@ export function createDemoApi(persistencePath?: string) {
           ? Math.round((completed.length / state.consultations.length) * 100)
           : 0,
         doctorsOnline: state.doctors.filter((item) => item.availabilityStatus === "online").length,
+        slaBreaches: state.consultations.filter(
+          (c) =>
+            (c.status === "assigned" || c.status === "queued") &&
+            c.callbackDeadline &&
+            new Date(c.callbackDeadline).getTime() < Date.now()
+        ).length,
         notificationQueue: state.notifications.length
       };
     },

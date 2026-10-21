@@ -18,6 +18,21 @@ describe("NeighbourDoc core healthcare logic", () => {
     assert.match(result.message, /nearest hospital/);
   });
 
+  it("detects multi-lingual emergency red flags including toxins, snake bites, and stroke", () => {
+    const snakeBite = detectEmergency("Khet me kaam karte waqt saanp ne kaat liya");
+    assert.equal(snakeBite.blocked, true);
+    assert.ok(snakeBite.matchedTerms.includes("saanp ne kaat liya"));
+
+    const stroke = detectEmergency("Sudden paralysis on right side and loss of consciousness");
+    assert.equal(stroke.blocked, true);
+    assert.ok(stroke.matchedTerms.includes("paralysis"));
+    assert.ok(stroke.matchedTerms.includes("loss of consciousness"));
+
+    const poison = detectEmergency("Accidental pesticide poisoning in child");
+    assert.equal(poison.blocked, true);
+    assert.ok(poison.matchedTerms.includes("poisoning"));
+  });
+
   it("prices supported consultation plans in paise", () => {
     assert.deepEqual(getConsultationPrice("basic"), { amount: 4900, label: "Basic", currency: "INR" });
     assert.deepEqual(getConsultationPrice("priority"), { amount: 9900, label: "Priority", currency: "INR" });

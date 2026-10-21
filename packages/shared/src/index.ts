@@ -58,18 +58,81 @@ export type SystemSettings = {
 };
 
 const emergencyTerms = [
+  // Cardiovascular & Chest Symptoms
   "chest pain",
-  "breathing difficulty",
-  "unconscious",
-  "severe bleeding",
-  "stroke",
   "heart attack",
-  "pregnancy emergency",
-  "seizure",
-  "poisoning",
-  "major accident",
+  "cardiac arrest",
+  "chest pressure",
+  "छाती में दर्द",
+  "dil ka daura",
+
+  // Respiratory Emergencies
+  "breathing difficulty",
+  "shortness of breath",
+  "saans lene me taklif",
+  "saans phoolna",
+  "दम घुटना",
+  "choking",
+  "cyanosis",
   "saans",
+
+  // Neurological & Altered Sensorium
+  "unconscious",
+  "fainted",
+  "loss of consciousness",
   "बेहोश",
+  "बेहोशी",
+  "seizure",
+  "mirgi",
+  "daura",
+  "convulsions",
+  "fits",
+  "stroke",
+  "paralysis",
+  "lakwa",
+  "falij",
+  "slurred speech",
+
+  // Severe Trauma & Bleeding
+  "severe bleeding",
+  "heavy bleeding",
+  "khoon behna",
+  "major accident",
+  "road accident",
+  "head injury",
+  "sar me chot",
+  "severe burn",
+  "jal gaya",
+  "fracture",
+
+  // Poisoning, Toxins & Bites
+  "poisoning",
+  "poison",
+  "zeher",
+  "zahar",
+  "snake bite",
+  "saanp ne kaat liya",
+  "drug overdose",
+
+  // High-Risk Obstetric & Neonatal
+  "pregnancy emergency",
+  "labor pain",
+  "garbhavastha emergency",
+  "newborn not breathing",
+
+  // Psychiatric Crises
+  "suicide",
+  "suicidal",
+  "kill myself",
+  "atmahathya",
+
+  // Anaphylaxis
+  "anaphylaxis",
+  "throat closing",
+  "gala band",
+  "severe allergic reaction",
+
+  // Shorter clinical anchors
   "छाती"
 ];
 

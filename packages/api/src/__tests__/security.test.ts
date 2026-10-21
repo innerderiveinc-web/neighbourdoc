@@ -365,3 +365,109 @@ test("SECURITY: enforces multi-tenant organization scoping for partner roles", (
   );
 });
 
+test("SECURITY & DPDP: executes patient data erasure and anonymization with audit trail", () => {
+  const api = createDemoApi(":memory:");
+
+  // Create a patient consultation
+  const consultationRes = api.createConsultation({
+    name: "Deepak Sharma",
+    phone: "+919888877777",
+    age: 35,
+    gender: "male",
+    city: "Jaipur",
+    language: "Hindi",
+    symptoms: "Mild fever and cough",
+    plan: "basic",
+    consent: true
+  });
+
+  assert.equal(consultationRes.ok, true);
+  const patientUserId = consultationRes.consultation.patientUserId;
+
+  const patientActor: AuthTokenPayload = {
+    sub: patientUserId,
+    phone: "+919888877777",
+    role: "patient"
+  };
+
+  const otherPatientActor: AuthTokenPayload = {
+    sub: "user_other_intruder",
+    phone: "+919888899999",
+    role: "patient"
+  };
+
+  // Malicious patient cannot erase someone else's data
+  assert.throws(
+    () => {
+      api.anonymizePatientData(patientUserId, otherPatientActor);
+    },
+    /Forbidden/
+  );
+
+  // Patient erases their own data under DPDP 2023
+  const erasureRes = api.anonymizePatientData(patientUserId, patientActor);
+  assert.equal(erasureRes.ok, true);
+
+  // Verify personal identifiers are expunged
+  const profile = api.getPatientMe(patientUserId);
+  assert.equal(profile.user?.name, "Anonymized Patient");
+  assert.equal(profile.user?.phone, "+910000000000");
+  assert.equal(profile.patient?.city, "Redacted");
+
+  // Verify audit log
+  const erasureAudit = api.listAuditLogs().find((l) => l.action === "patient_data_erasure_executed");
+  assert.ok(erasureAudit);
+  assert.equal(erasureAudit.entityId, patientUserId);
+});
+
+test("SECURITY & AUDIT: logs prescription reading and access events", () => {
+  const api = createDemoApi(":memory:");
+
+  const booking = api.createConsultation({
+    name: "Sunita Devi",
+    phone: "+919876500001",
+    age: 45,
+    gender: "female",
+    city: "Lucknow",
+    language: "Hindi",
+    symptoms: "Mild throat irritation",
+    plan: "basic",
+    consent: true
+  });
+
+  assert.equal(booking.ok, true);
+  assert.ok(booking.consultation);
+
+  const adminActor: AuthTokenPayload = {
+    sub: "user_admin_1",
+    phone: "+919999999999",
+    role: "admin"
+  };
+
+  // Complete consultation and create prescription
+  api.completeConsultation(
+    booking.consultation.id,
+    {
+      medicines: "Paracetamol 500mg TDS, Gargle with warm water",
+      advice: "Take rest, drink fluids"
+    },
+    adminActor
+  );
+
+  const patientActor: AuthTokenPayload = {
+    sub: booking.consultation.patientUserId,
+    phone: "+919876500001",
+    role: "patient"
+  };
+
+  // Patient accesses their prescription
+  const rx = api.getPrescriptionByConsultation(booking.consultation.id, patientActor);
+  assert.ok(rx);
+
+  // Audit log must reflect prescription access
+  const accessLog = api.listAuditLogs().find((l) => l.action === "prescription_accessed");
+  assert.ok(accessLog);
+  assert.equal(accessLog.actorId, patientActor.sub);
+});
+
+
