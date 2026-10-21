@@ -56,6 +56,7 @@ test("runs the paid consultation lifecycle from OTP through feedback", () => {
   });
 
   assert.equal(completed.consultation.status, "completed");
+  assert.ok(completed.prescription);
   assert.equal(completed.prescription.consultationId, paid.consultation.id);
   assert.equal(api.getPrescriptionByConsultation(paid.consultation.id)?.advice, completed.prescription.advice);
   assert.equal(api.listDoctorEarnings().length, 1);

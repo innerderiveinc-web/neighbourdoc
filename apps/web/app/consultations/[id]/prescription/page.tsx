@@ -47,13 +47,21 @@ export default function PrescriptionPage({ params }: { params: Promise<{ id: str
     async function loadData() {
       try {
         setLoading(true);
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("neighbourdoc_patient_token") ||
+              localStorage.getItem("neighbourdoc_doctor_token") ||
+              localStorage.getItem("neighbourdoc_admin_token")
+            : null;
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
         const [cRes, pRes] = await Promise.all([
-          fetch(`/api/consultations/${id}`),
-          fetch(`/api/prescriptions/${id}`)
+          fetch(`/api/consultations/${id}`, { headers }),
+          fetch(`/api/prescriptions/${id}`, { headers })
         ]);
 
         if (!cRes.ok) {
-          setError("परामर्श रिकॉर्ड नहीं मिला। कृपया टोकन नंबर जांचें।");
+          setError("परामर्श रिकॉर्ड नहीं मिला या अनधिकृत पहुंच (Unauthorized)।");
           return;
         }
 

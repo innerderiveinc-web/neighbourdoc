@@ -7,7 +7,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   try {
     const { id } = await context.params;
     const body = await readJson<{ availabilityStatus: "online" | "offline" | "busy" }>(request);
-    return ok(api.setDoctorAvailability(id, body.availabilityStatus));
+    return ok(api.setDoctorAvailability(id, body.availabilityStatus, guard.user));
   } catch (error) {
     return fail(error, 404);
   }

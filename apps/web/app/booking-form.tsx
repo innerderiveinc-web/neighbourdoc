@@ -22,7 +22,7 @@ const initialForm = {
   symptoms: "",
   existingIllnesses: "",
   plan: "basic",
-  consent: true
+  consent: false
 };
 
 export function BookingForm() {
@@ -101,6 +101,12 @@ export function BookingForm() {
           message: booking.emergency?.message ?? booking.error ?? "बुकिंग नहीं हो सकी। कृपया दोबारा प्रयास करें।"
         });
         return;
+      }
+
+      if (booking.sessionToken) {
+        try {
+          localStorage.setItem("neighbourdoc_patient_token", booking.sessionToken);
+        } catch {}
       }
 
       const orderResponse = await fetch("/api/payments/create-order", {

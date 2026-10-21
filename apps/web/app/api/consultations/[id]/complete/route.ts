@@ -6,7 +6,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   try {
     const { id } = await context.params;
-    return ok(api.completeConsultation(id, await readJson(request)));
+    return ok(api.completeConsultation(id, await readJson(request), guard.user));
   } catch (error) {
     return fail(error, 404);
   }

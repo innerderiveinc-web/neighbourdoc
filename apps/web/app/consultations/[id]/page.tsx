@@ -38,9 +38,17 @@ export default function ConsultationStatusPage({ params }: { params: Promise<{ i
     async function loadData() {
       try {
         setLoading(true);
-        const cRes = await fetch(`/api/consultations/${id}`);
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("neighbourdoc_patient_token") ||
+              localStorage.getItem("neighbourdoc_doctor_token") ||
+              localStorage.getItem("neighbourdoc_admin_token")
+            : null;
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const cRes = await fetch(`/api/consultations/${id}`, { headers });
         if (!cRes.ok) {
-          setError("परामर्श रिकॉर्ड नहीं मिला। कृपया अपना टोकन नंबर जांचें।");
+          setError("परामर्श रिकॉर्ड नहीं मिला या अनधिकृत पहुंच (Unauthorized)। कृपया टोकन जांचें।");
           return;
         }
 

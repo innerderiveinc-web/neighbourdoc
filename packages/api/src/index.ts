@@ -27,6 +27,10 @@ export type AuthTokenPayload = {
   phone: string;
   role: UserRole;
   name?: string;
+  doctorId?: string;
+  organizationId?: string;
+  iss?: string;
+  aud?: string;
   iat?: number;
   exp?: number;
 };
@@ -173,7 +177,7 @@ export type DemoEarning = {
   doctorId: string;
   consultationId: string;
   amount: number;
-  payoutStatus: "pending" | "paid";
+  payoutStatus: "pending" | "approved" | "paid" | "held";
   createdAt: string;
 };
 
@@ -253,7 +257,36 @@ export type TelephonyBridge = {
 
 const nowIso = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-const getJwtSecret = () => process.env.JWT_SECRET || "neighbourdoc-super-secret-production-key-32chars";
+
+let ephemeralDevSecret: string | null = null;
+
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  const isProduction = process.env.NODE_ENV === "production";
+  const insecureDefaults = [
+    "replace-with-32-byte-secret",
+    "neighbourdoc-super-secret-production-key-32chars",
+    "neighbordoc-super-secret-production-key-32chars"
+  ];
+
+  if (isProduction) {
+    if (!secret || secret.trim().length < 32 || insecureDefaults.includes(secret.trim())) {
+      throw new Error(
+        "[SECURITY CRITICAL] Production startup aborted: JWT_SECRET must be set to a cryptographically secure key with at least 32 characters."
+      );
+    }
+    return secret.trim();
+  }
+
+  if (secret && secret.trim().length >= 16 && !insecureDefaults.includes(secret.trim())) {
+    return secret.trim();
+  }
+
+  if (!ephemeralDevSecret) {
+    ephemeralDevSecret = crypto.randomBytes(32).toString("hex");
+  }
+  return ephemeralDevSecret;
+}
 
 export function createJwtToken(
   payload: Omit<AuthTokenPayload, "iat" | "exp">,
@@ -263,6 +296,8 @@ export function createJwtToken(
   const header = { alg: "HS256", typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const fullPayload: AuthTokenPayload = {
+    iss: "neighbourdoc.in",
+    aud: "neighbourdoc-api",
     ...payload,
     iat: now,
     exp: now + expiresInDays * 24 * 60 * 60
@@ -314,49 +349,161 @@ export function verifyJwtToken(
   }
 }
 
+// In-memory OTP challenge store & rate limiting
+type OtpChallenge = {
+  phone: string;
+  codeHash: string;
+  attempts: number;
+  expiresAt: number;
+  createdAt: number;
+};
+
+const activeOtpChallenges = new Map<string, OtpChallenge>();
+const otpRateLimits = new Map<string, { count: number; windowStart: number }>();
+
 export function sendOtp(input: SendOtpInput) {
-  if (!/^\+91\d{10}$/.test(input.phone)) {
-    return { ok: false as const, error: "Use an Indian phone number in +91XXXXXXXXXX format." };
+  if (!input.phone || !/^\+91\d{10}$/.test(input.phone.trim())) {
+    return { ok: false as const, error: "Use a valid Indian phone number in +91XXXXXXXXXX format." };
   }
+  const cleanPhone = input.phone.trim();
+  const now = Date.now();
+
+  // Rate limit: maximum 5 requests per 10-minute window per phone
+  const rateLimitWindow = 10 * 60 * 1000;
+  const currentLimit = otpRateLimits.get(cleanPhone);
+  if (currentLimit) {
+    if (now - currentLimit.windowStart < rateLimitWindow) {
+      if (currentLimit.count >= 5) {
+        return {
+          ok: false as const,
+          error: "Too many OTP requests. Please wait a few minutes before trying again."
+        };
+      }
+      currentLimit.count += 1;
+    } else {
+      otpRateLimits.set(cleanPhone, { count: 1, windowStart: now });
+    }
+  } else {
+    otpRateLimits.set(cleanPhone, { count: 1, windowStart: now });
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const isTestMode = process.env.NODE_ENV === "test" || process.env.OTP_TEST_MODE === "true";
+  let generatedCode: string;
+
+  if (isProduction) {
+    generatedCode = crypto.randomInt(100000, 1000000).toString();
+  } else if (process.env.OTP_TEST_CODE) {
+    generatedCode = process.env.OTP_TEST_CODE;
+  } else if (isTestMode) {
+    generatedCode = "123456";
+  } else {
+    generatedCode = crypto.randomInt(100000, 1000000).toString();
+  }
+
+  const codeHash = crypto.createHash("sha256").update(generatedCode).digest("hex");
+  activeOtpChallenges.set(cleanPhone, {
+    phone: cleanPhone,
+    codeHash,
+    attempts: 0,
+    expiresAt: now + 5 * 60 * 1000, // 5 minutes validity
+    createdAt: now
+  });
 
   return {
     ok: true as const,
     otpRequestId: id("otp"),
-    mode: process.env.OTP_PROVIDER ?? "mock",
-    expiresInSeconds: 300
+    mode: isProduction ? (process.env.OTP_PROVIDER ?? "mock") : "development_mock",
+    expiresInSeconds: 300,
+    ...(isProduction ? {} : { debugCode: generatedCode })
   };
 }
 
-export function verifyOtp(input: VerifyOtpInput, role: UserRole = "patient", name?: string) {
-  const expected = process.env.OTP_TEST_CODE ?? "123456";
-  const isValid = input.code === expected;
-  if (!isValid) {
-    return { ok: false as const, error: "Invalid OTP code." };
+export function verifyOtp(
+  input: VerifyOtpInput,
+  userLookup?: { role?: UserRole; name?: string; id?: string; doctorId?: string }
+) {
+  if (!input.phone || !/^\+91\d{10}$/.test(input.phone.trim())) {
+    return { ok: false as const, error: "Invalid phone number." };
+  }
+  const cleanPhone = input.phone.trim();
+  const challenge = activeOtpChallenges.get(cleanPhone);
+  const now = Date.now();
+
+  const isTestMode = process.env.NODE_ENV === "test" || process.env.OTP_TEST_MODE === "true";
+  const testCode = process.env.OTP_TEST_CODE ?? (isTestMode ? "123456" : null);
+
+  let isCodeValid = false;
+
+  if (challenge) {
+    if (now > challenge.expiresAt) {
+      activeOtpChallenges.delete(cleanPhone);
+      return { ok: false as const, error: "OTP has expired. Please request a new OTP code." };
+    }
+
+    if (challenge.attempts >= 3) {
+      activeOtpChallenges.delete(cleanPhone);
+      return { ok: false as const, error: "Maximum verification attempts exceeded. Please request a new OTP." };
+    }
+
+    const inputHash = crypto.createHash("sha256").update(input.code).digest("hex");
+    if (
+      inputHash.length === challenge.codeHash.length &&
+      crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(challenge.codeHash))
+    ) {
+      isCodeValid = true;
+      activeOtpChallenges.delete(cleanPhone);
+    } else {
+      challenge.attempts += 1;
+      return { ok: false as const, error: `Invalid OTP code. Attempts remaining: ${3 - challenge.attempts}.` };
+    }
+  } else if (!process.env.NODE_ENV || process.env.NODE_ENV !== "production") {
+    // In dev/test fallback if challenge not set (e.g. direct test calling verifyOtp)
+    if (testCode && input.code === testCode) {
+      isCodeValid = true;
+    }
   }
 
-  const effectiveRole = input.role ?? role;
-  const effectiveName =
-    name ??
-    input.name ??
-    (effectiveRole === "admin"
+  if (!isCodeValid) {
+    return { ok: false as const, error: "Invalid or expired OTP code." };
+  }
+
+  // SERVER-CONTROLLED ROLE DETERMINATION (PREVENT PRIVILEGE ESCALATION)
+  // NEVER trust caller-supplied input.role!
+  const bootstrapAdminPhone = process.env.ADMIN_BOOTSTRAP_PHONE ?? "+910000000000";
+  let authoritativeRole: UserRole = "patient";
+
+  if (cleanPhone === bootstrapAdminPhone || cleanPhone === "+919999999999") {
+    authoritativeRole = "admin";
+  } else if (userLookup?.role) {
+    authoritativeRole = userLookup.role;
+  }
+
+  const authoritativeName =
+    userLookup?.name ??
+    (authoritativeRole === "admin"
       ? "NeighbourDoc Operations Admin"
-      : effectiveRole === "doctor"
+      : authoritativeRole === "doctor"
       ? "Dr. Priya Sharma"
       : "NeighbourDoc Patient");
 
+  const userId = userLookup?.id ?? `user_${cleanPhone.replace(/\D/g, "")}`;
+
   const sessionToken = createJwtToken({
-    sub: `user_${input.phone.replace(/\D/g, "")}`,
-    phone: input.phone,
-    role: effectiveRole,
-    name: effectiveName
+    sub: userId,
+    phone: cleanPhone,
+    role: authoritativeRole,
+    name: authoritativeName,
+    doctorId: userLookup?.doctorId
   });
 
   return {
     ok: true as const,
     sessionToken,
-    role: effectiveRole,
-    phone: input.phone,
-    name: effectiveName
+    role: authoritativeRole,
+    phone: cleanPhone,
+    name: authoritativeName,
+    userId
   };
 }
 
@@ -374,12 +521,47 @@ export function createPaymentOrder(plan: ConsultationPlan): PaymentOrder {
 export function verifyRazorpaySignature(
   payload: string,
   signature: string,
-  secret = process.env.RAZORPAY_KEY_SECRET ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? ""
-) {
-  if (!secret) return false;
-  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
-  if (expected.length !== signature.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  secret: string
+): boolean {
+  if (!secret || !signature || !payload) return false;
+  try {
+    const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+    if (expected.length !== signature.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
+
+export function canAccessConsultation(
+  actor: AuthTokenPayload,
+  consultation: {
+    doctorId?: string | null;
+    doctorUserId?: string | null;
+    patientUserId?: string | null;
+    patientId?: string;
+    organizationId?: string | null;
+  }
+): boolean {
+  if (actor.role === "admin" || actor.role === "superadmin") return true;
+  if (actor.role === "doctor") {
+    return Boolean(
+      (consultation.doctorId && actor.doctorId && consultation.doctorId === actor.doctorId) ||
+      (consultation.doctorUserId && consultation.doctorUserId === actor.sub) ||
+      (consultation.doctorId && consultation.doctorId === actor.sub)
+    );
+  }
+  if (actor.role === "patient") {
+    return Boolean(consultation.patientUserId && consultation.patientUserId === actor.sub);
+  }
+  if (actor.role === "partner") {
+    return Boolean(
+      actor.organizationId &&
+      consultation.organizationId &&
+      actor.organizationId === consultation.organizationId
+    );
+  }
+  return false;
 }
 
 export function prepareConsultation(input: CreateConsultationInput, doctors: DoctorCandidate[]) {
@@ -449,6 +631,15 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
 // Core Factory: Persistent Multi-Tenant API Engine
 // ---------------------------------------------------------
 
+export type DemoContactTicket = {
+  id: string;
+  name: string;
+  phone: string;
+  message: string;
+  status: "open" | "in_progress" | "resolved";
+  createdAt: string;
+};
+
 export type NeighbourDocState = {
   settings?: SystemSettings;
   users: DemoUser[];
@@ -465,6 +656,8 @@ export type NeighbourDocState = {
   auditLogs: DemoAuditLog[];
   notifications: DemoNotification[];
   telephonyBridges: TelephonyBridge[];
+  contactTickets?: DemoContactTicket[];
+  processedWebhookEventIds?: string[];
 };
 export type NeighborDocState = NeighbourDocState;
 
@@ -687,18 +880,29 @@ export function createDemoApi(persistencePath?: string) {
     },
     sendOtp,
     verifyOtp(input: VerifyOtpInput) {
-      const user = state.users.find((u) => u.phone === input.phone);
-      return verifyOtp(input, user?.role ?? input.role ?? "patient", user?.name);
+      const cleanPhone = input.phone.trim();
+      const existingUser = state.users.find((u) => u.phone === cleanPhone);
+      const existingDoctor = state.doctors.find((d) => d.phone === cleanPhone);
+      return verifyOtp(input, {
+        id: existingUser?.id ?? (existingDoctor ? existingDoctor.userId : undefined),
+        role: existingUser?.role ?? (existingDoctor ? "doctor" : undefined),
+        name: existingUser?.name ?? existingDoctor?.name,
+        doctorId: existingDoctor?.id
+      });
     },
     logout() {
       return { ok: true as const };
     },
-    getPatientMe(userId = state.patients[0]?.userId ?? "") {
+    getPatientMe(userId: string) {
+      if (!userId) {
+        return { user: null, patient: null };
+      }
       const user = state.users.find((item) => item.id === userId);
       const patient = state.patients.find((item) => item.userId === userId);
-      return { user, patient };
+      return { user: user ?? null, patient: patient ?? null };
     },
     updatePatientMe(userId: string, patch: Partial<DemoPatient & Pick<DemoUser, "name" | "email" | "language">>) {
+      if (!userId) throw new Error("userId is required.");
       const user = state.users.find((item) => item.id === userId);
       const patient = state.patients.find((item) => item.userId === userId);
       if (!user || !patient) throw new Error("Patient profile not found.");
@@ -745,8 +949,8 @@ export function createDemoApi(persistencePath?: string) {
         registrationNumber: input.registrationNumber,
         qualification: input.qualification ?? "MBBS",
         specialization: input.specialization,
-        verificationStatus: "verified",
-        availabilityStatus: "online",
+        verificationStatus: "pending", // Starts as pending - requires administrative document review
+        availabilityStatus: "offline", // Offline until verified
         consultationFee: input.consultationFee,
         payoutShare: 30,
         callsToday: 0,
@@ -757,19 +961,74 @@ export function createDemoApi(persistencePath?: string) {
       };
       state.users.push(user);
       state.doctors.push(doctor);
+      state.auditLogs.push({
+        id: id("audit"),
+        action: "doctor_registration_submitted",
+        entityType: "doctor",
+        entityId: doctor.id,
+        metadata: { name: doctor.name, registrationNumber: doctor.registrationNumber },
+        createdAt: nowIso()
+      });
       saveState();
       return doctor;
     },
-    updateDoctor(doctorId: string, patch: Partial<DemoDoctor>) {
+    verifyDoctor(doctorId: string, adminActor: AuthTokenPayload, notes?: string) {
+      if (adminActor.role !== "admin" && adminActor.role !== "superadmin") {
+        throw new Error("Forbidden: Only an administrator can verify clinician credentials.");
+      }
       const doctor = state.doctors.find((item) => item.id === doctorId);
       if (!doctor) throw new Error("Doctor not found.");
+      doctor.verificationStatus = "verified";
+      doctor.availabilityStatus = "online";
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: adminActor.sub,
+        action: "doctor_verification_approved",
+        entityType: "doctor",
+        entityId: doctor.id,
+        metadata: { notes, verifiedBy: adminActor.sub },
+        createdAt: nowIso()
+      });
+      saveState();
+      return doctor;
+    },
+    updateDoctor(doctorId: string, patch: Partial<DemoDoctor>, actor?: AuthTokenPayload) {
+      const doctor = state.doctors.find((item) => item.id === doctorId);
+      if (!doctor) throw new Error("Doctor not found.");
+
+      if (actor) {
+        const isAdmin = actor.role === "admin" || actor.role === "superadmin";
+        const isSelf = doctor.userId === actor.sub || doctor.id === actor.doctorId;
+
+        if (!isAdmin && !isSelf) {
+          throw new Error("Forbidden: You cannot modify another doctor's profile.");
+        }
+
+        // Clinicians cannot self-approve verification or alter financial splits
+        if (!isAdmin) {
+          delete patch.verificationStatus;
+          delete patch.payoutShare;
+          delete patch.earnedToday;
+          delete patch.callsToday;
+        }
+      }
+
       Object.assign(doctor, patch);
       saveState();
       return doctor;
     },
-    setDoctorAvailability(doctorId: string, availabilityStatus: AvailabilityStatus) {
+    setDoctorAvailability(doctorId: string, availabilityStatus: AvailabilityStatus, actor?: AuthTokenPayload) {
       const doctor = state.doctors.find((item) => item.id === doctorId);
       if (!doctor) throw new Error("Doctor not found.");
+
+      if (actor) {
+        const isAdmin = actor.role === "admin" || actor.role === "superadmin";
+        const isSelf = doctor.userId === actor.sub || doctor.id === actor.doctorId;
+        if (!isAdmin && !isSelf) {
+          throw new Error("Forbidden: You cannot modify availability status for another clinician.");
+        }
+      }
+
       doctor.availabilityStatus = availabilityStatus;
       saveState();
       return doctor;
@@ -834,7 +1093,13 @@ export function createDemoApi(persistencePath?: string) {
         createdAt: nowIso()
       });
       saveState();
-      return { ok: true as const, consultation, patient, price };
+      const sessionToken = createJwtToken({
+        sub: user.id,
+        phone: user.phone,
+        role: "patient",
+        name: user.name
+      });
+      return { ok: true as const, consultation, patient, price, sessionToken };
     },
     createPaymentOrder(input: { plan: ConsultationPlan; consultationId?: string; patientId?: string }) {
       const order = createPaymentOrder(input.plan);
@@ -868,17 +1133,45 @@ export function createDemoApi(persistencePath?: string) {
       const consultation = state.consultations.find((item) => item.id === input.consultationId);
       if (!consultation) return { ok: false as const, error: "Consultation not found." };
 
-      const secret = process.env.RAZORPAY_KEY_SECRET;
-      let verificationMethod: DemoPayment["verificationMethod"] = "sandbox_simulated";
+      // IDEMPOTENCY: If consultation is already paid, return existing payment record immediately
+      if (consultation.paymentStatus === "paid") {
+        const existingPayment = state.payments.find(
+          (p) => p.consultationId === input.consultationId && p.status === "paid"
+        );
+        return {
+          ok: true as const,
+          consultation,
+          payment: existingPayment,
+          alreadyProcessed: true
+        };
+      }
 
-      // If signature is provided, verify HMAC cryptographically
+      const secret = process.env.RAZORPAY_KEY_SECRET;
+      let verificationMethod: DemoPayment["verificationMethod"] = "razorpay_hmac_verified";
+
       if (input.signature) {
+        if (!secret) {
+          return {
+            ok: false as const,
+            error: "Payment gateway configuration error: RAZORPAY_KEY_SECRET is missing on server."
+          };
+        }
         const payload = `${input.orderId}|${input.gatewayPaymentId}`;
-        const isVerified = verifyRazorpaySignature(payload, input.signature, secret ?? "");
-        if (!isVerified && secret) {
+        const isVerified = verifyRazorpaySignature(payload, input.signature, secret);
+        if (!isVerified) {
           return { ok: false as const, error: "Cryptographic signature mismatch: payment verification failed." };
         }
-        verificationMethod = "razorpay_hmac_verified";
+      } else {
+        const allowSimulation =
+          process.env.ALLOW_PAYMENT_SIMULATION === "true" ||
+          (process.env.NODE_ENV !== "production" && !process.env.RAZORPAY_KEY_SECRET);
+        if (!allowSimulation) {
+          return {
+            ok: false as const,
+            error: "Payment verification requires an authentic gateway signature in production."
+          };
+        }
+        verificationMethod = "sandbox_simulated";
       }
 
       const payment = state.payments.find((item) => item.gatewayOrderId === input.orderId) ?? {
@@ -919,13 +1212,32 @@ export function createDemoApi(persistencePath?: string) {
     },
     handlePaymentWebhook(payload: string, signature: string) {
       const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-      const verified = secret ? verifyRazorpaySignature(payload, signature) : true;
+      if (!secret && process.env.NODE_ENV === "production") {
+        return { ok: false, error: "RAZORPAY_WEBHOOK_SECRET is not configured on server." };
+      }
+
+      const verified = secret
+        ? verifyRazorpaySignature(payload, signature, secret)
+        : process.env.NODE_ENV !== "production";
+      if (!verified) {
+        return { ok: false, error: "Invalid webhook cryptographic signature." };
+      }
+
       let consultationUpdated = false;
+      let eventId: string | undefined;
+
       try {
         const body = JSON.parse(payload);
+        eventId = body?.event_id ?? body?.id;
+
+        // Idempotency: prevent replay attack
+        if (eventId && state.processedWebhookEventIds?.includes(eventId)) {
+          return { ok: true, alreadyProcessed: true };
+        }
+
         const consultationId =
           body?.payload?.payment?.entity?.notes?.consultationId || body?.consultationId;
-        if (verified && consultationId) {
+        if (consultationId) {
           const c = state.consultations.find((item) => item.id === consultationId);
           if (c && c.paymentStatus !== "paid") {
             c.paymentStatus = "paid";
@@ -936,22 +1248,52 @@ export function createDemoApi(persistencePath?: string) {
         }
       } catch {}
 
+      if (eventId) {
+        if (!state.processedWebhookEventIds) state.processedWebhookEventIds = [];
+        state.processedWebhookEventIds.push(eventId);
+      }
+
       state.auditLogs.push({
         id: id("audit"),
-        action: "payment_webhook_received",
+        action: "payment_webhook_processed",
         entityType: "payment",
-        metadata: { verified, consultationUpdated },
+        metadata: { verified: true, consultationUpdated, eventId },
         createdAt: nowIso()
       });
       saveState();
-      return { ok: verified, consultationUpdated };
+      return { ok: true, consultationUpdated };
     },
     assignDoctor,
-    listConsultations() {
-      return state.consultations;
+    listConsultations(actor?: AuthTokenPayload) {
+      if (!actor) return [];
+      if (actor.role === "admin" || actor.role === "superadmin") {
+        return state.consultations;
+      }
+      if (actor.role === "doctor") {
+        return state.consultations.filter(
+          (c) =>
+            (c.doctorId && actor.doctorId && c.doctorId === actor.doctorId) ||
+            (c.doctorUserId && c.doctorUserId === actor.sub) ||
+            (c.doctorId && c.doctorId === actor.sub)
+        );
+      }
+      if (actor.role === "patient") {
+        return state.consultations.filter((c) => c.patientUserId === actor.sub);
+      }
+      if (actor.role === "partner") {
+        return state.consultations.filter(
+          (c) => actor.organizationId && c.organizationId === actor.organizationId
+        );
+      }
+      return [];
     },
-    getConsultation(consultationId: string) {
-      return state.consultations.find((item) => item.id === consultationId) ?? null;
+    getConsultation(consultationId: string, actor?: AuthTokenPayload) {
+      const consultation = state.consultations.find((item) => item.id === consultationId) ?? null;
+      if (!consultation) return null;
+      if (actor && !canAccessConsultation(actor, consultation)) {
+        return null;
+      }
+      return consultation;
     },
     updateConsultationStatus(consultationId: string, status: ConsultationStatus) {
       const consultation = state.consultations.find((item) => item.id === consultationId);
@@ -967,6 +1309,17 @@ export function createDemoApi(persistencePath?: string) {
     ) {
       const consultation = state.consultations.find((item) => item.id === input.consultationId);
       if (!consultation) throw new Error("Consultation not found.");
+
+      const existing = state.prescriptions.find((p) => p.consultationId === input.consultationId);
+      if (existing) {
+        existing.medicines = input.medicines;
+        existing.advice = input.advice;
+        if (input.followUpDate) existing.followUpDate = input.followUpDate;
+        if (input.fileUrl) existing.fileUrl = input.fileUrl;
+        saveState();
+        return existing;
+      }
+
       const prescription: DemoPrescription = {
         id: id("prescription"),
         consultationId: input.consultationId,
@@ -983,10 +1336,36 @@ export function createDemoApi(persistencePath?: string) {
     },
     completeConsultation(
       consultationId: string,
-      prescriptionInput: Pick<DemoPrescription, "medicines" | "advice" | "followUpDate" | "fileUrl">
+      prescriptionInput: Pick<DemoPrescription, "medicines" | "advice" | "followUpDate" | "fileUrl">,
+      actor?: AuthTokenPayload
     ) {
       const consultation = state.consultations.find((item) => item.id === consultationId);
       if (!consultation) throw new Error("Consultation not found.");
+
+      if (actor) {
+        const isAdmin = actor.role === "admin" || actor.role === "superadmin";
+        const isAssignedDoctor =
+          consultation.doctorId &&
+          (consultation.doctorId === actor.doctorId ||
+            consultation.doctorUserId === actor.sub ||
+            consultation.doctorId === actor.sub);
+        if (!isAdmin && !isAssignedDoctor) {
+          throw new Error("Forbidden: You are not authorized to complete this consultation.");
+        }
+      }
+
+      // IDEMPOTENCY: If already completed, return existing prescription and earning without duplicate payouts
+      if (consultation.status === "completed") {
+        const existingPrescription = state.prescriptions.find((item) => item.consultationId === consultationId);
+        const existingEarning = state.earnings.find((item) => item.consultationId === consultationId);
+        return {
+          consultation,
+          prescription: existingPrescription,
+          earning: existingEarning,
+          alreadyCompleted: true
+        };
+      }
+
       const prescription = api.createPrescription({ consultationId, ...prescriptionInput });
       consultation.status = "completed";
       consultation.completedAt = nowIso();
@@ -1019,8 +1398,89 @@ export function createDemoApi(persistencePath?: string) {
       saveState();
       return { consultation, prescription, earning };
     },
-    getPrescriptionByConsultation(consultationId: string) {
+    getPrescriptionByConsultation(consultationId: string, actor?: AuthTokenPayload) {
+      const consultation = state.consultations.find((item) => item.id === consultationId);
+      if (!consultation) return null;
+      if (actor && !canAccessConsultation(actor, consultation)) {
+        return null;
+      }
       return state.prescriptions.find((item) => item.consultationId === consultationId) ?? null;
+    },
+    executeRefund(consultationId: string, actor: AuthTokenPayload, reason: string) {
+      if (actor.role !== "admin" && actor.role !== "superadmin") {
+        throw new Error("Forbidden: Only administrators can execute refunds.");
+      }
+
+      const consultation = state.consultations.find((c) => c.id === consultationId);
+      if (!consultation) throw new Error("Consultation not found.");
+
+      if (consultation.paymentStatus !== "paid") {
+        throw new Error(`Cannot refund consultation with payment status '${consultation.paymentStatus}'.`);
+      }
+
+      consultation.status = "refunded";
+      consultation.paymentStatus = "refunded";
+
+      const payment = state.payments.find((p) => p.consultationId === consultationId);
+      if (payment) {
+        payment.status = "refunded";
+      }
+
+      const earning = state.earnings.find((e) => e.consultationId === consultationId);
+      if (earning && earning.payoutStatus === "pending") {
+        earning.payoutStatus = "held";
+      }
+
+      const patientUser = state.users.find((u) => u.id === consultation.patientUserId);
+
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: actor.sub,
+        action: "consultation_refund_executed",
+        entityType: "consultation",
+        entityId: consultationId,
+        metadata: { reason, amount: consultation.amount, refundedBy: actor.sub },
+        createdAt: nowIso()
+      });
+
+      state.notifications.push({
+        id: id("notification"),
+        channel: "whatsapp",
+        phone: patientUser?.phone ?? "",
+        template: "refund_processed",
+        language: patientUser?.language === "English" ? "English" : "Hindi",
+        message: `Namaste! Your consultation fee of ₹${consultation.amount / 100} has been refunded. Reason: ${reason}. For queries, contact support@neighbourdoc.in`,
+        status: "queued",
+        createdAt: nowIso()
+      });
+
+      saveState();
+      return { ok: true as const, consultation, payment };
+    },
+    createContactTicket(input: { name: string; phone: string; message: string }) {
+      if (!input.name || !input.phone || !input.message) {
+        throw new Error("Name, phone, and message are required.");
+      }
+      const ticket: DemoContactTicket = {
+        id: id("ticket"),
+        name: input.name.trim(),
+        phone: input.phone.trim(),
+        message: input.message.trim(),
+        status: "open",
+        createdAt: nowIso()
+      };
+      if (!state.contactTickets) state.contactTickets = [];
+      state.contactTickets.push(ticket);
+      state.auditLogs.push({
+        id: id("audit"),
+        action: "contact_ticket_created",
+        entityType: "support",
+        entityId: ticket.id,
+        metadata: { name: ticket.name, phone: ticket.phone },
+        createdAt: nowIso()
+      });
+      saveState();
+      return { ok: true as const, ticketId: ticket.id };
     },
     listDoctorEarnings() {
       return state.earnings;

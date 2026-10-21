@@ -63,6 +63,20 @@ export type AuthGuardResult =
   | { authorized: true; user: AuthTokenPayload; response?: undefined }
   | { authorized: false; response: Response; user?: undefined };
 
+export function requireAuth(request: Request): AuthGuardResult {
+  const auth = authenticate(request);
+  if (!auth.authenticated || !auth.user) {
+    return {
+      authorized: false,
+      response: Response.json(
+        { ok: false, error: auth.error ?? "Authentication required. Please sign in." },
+        { status: 401 }
+      )
+    };
+  }
+  return { authorized: true, user: auth.user };
+}
+
 export function requireRole(
   request: Request,
   allowedRoles: UserRole[]

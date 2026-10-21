@@ -10,13 +10,14 @@ import { PrescriptionScreen } from "./src/screens/PrescriptionScreen";
 import { HistoryScreen } from "./src/screens/HistoryScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 
-const tabs = ["Home", "Book", "Status", "Prescription", "History", "Language", "Profile"] as const;
+const tabs = ["Home", "Book", "Status", "Prescription", "History", "Language", "Profile", "Login"] as const;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Home");
   const [language, setLanguage] = useState<Language>("Hindi");
   const [patientPhone, setPatientPhone] = useState("+919711111111");
   const [patientName, setPatientName] = useState("Ramesh Kumar");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Active consultation tracking
   const [consultationId, setConsultationId] = useState<string | null>(null);
@@ -145,7 +146,19 @@ export default function App() {
             language={language}
             onLogout={() => {
               setConsultationId(null);
+              setIsLoggedIn(false);
               setActiveTab("Home");
+            }}
+          />
+        )}
+
+        {activeTab === "Login" && (
+          <OtpScreen
+            phone={patientPhone}
+            onVerified={(userPhone) => {
+              setPatientPhone(userPhone);
+              setIsLoggedIn(true);
+              setActiveTab("Profile");
             }}
           />
         )}

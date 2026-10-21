@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { apiRequest } from "../apiClient";
+import { apiRequest, setAuthToken } from "../apiClient";
 
 export function OtpScreen({
   phone,
   onVerified,
 }: {
   phone: string;
-  onVerified: (userPhone: string) => void;
+  onVerified: (userPhone: string, token?: string) => void;
 }) {
   const [phoneNumber, setPhoneNumber] = useState(phone || "+91");
   const [otpCode, setOtpCode] = useState("123456");
@@ -44,7 +44,10 @@ export function OtpScreen({
         body: JSON.stringify({ phone: phoneNumber, code: otpCode }),
       });
       if (res.ok) {
-        onVerified(phoneNumber);
+        if (res.sessionToken) {
+          setAuthToken(res.sessionToken);
+        }
+        onVerified(phoneNumber, res.sessionToken);
       } else {
         setError(res.error ?? "अमान्य OTP कोड।");
       }

@@ -111,34 +111,7 @@ export default function ContactPage() {
           <h3 className="text-sm font-black text-[#0F2F2E]">हमें संदेश भेजें (Leave a Message)</h3>
           <p className="text-xs text-[#64748B] mt-0.5">क्या आपके पास कोई सवाल या सुझाव है? हमारी टीम आपसे 2 घंटे में संपर्क करेगी।</p>
 
-          <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); alert("धन्यवाद! आपका संदेश प्राप्त हो गया है। हमारी टीम जल्द संपर्क करेगी।"); }}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                required
-                type="text"
-                placeholder="आपका नाम"
-                className="rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
-              />
-              <input
-                required
-                type="tel"
-                placeholder="मोबाइल नंबर (+91)"
-                className="rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
-              />
-            </div>
-            <textarea
-              required
-              rows={3}
-              placeholder="आपका संदेश या समस्या का विवरण..."
-              className="w-full rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
-            ></textarea>
-            <button
-              type="submit"
-              className="rounded-xl bg-[#0B4F48] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#083E38] transition shadow"
-            >
-              संदेश भेजें &rarr;
-            </button>
-          </form>
+          <ContactFormSection />
         </div>
 
         <div className="mt-10 pt-6 border-t border-[#E9ECEF] flex flex-wrap gap-3">
@@ -157,5 +130,104 @@ export default function ContactPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function ContactFormSection() {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, message })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSubmittedTicket(data.ticketId);
+        setName("");
+        setPhone("");
+        setMessage("");
+      } else {
+        setError(data.error || "संदेश भेजने में त्रुटि हुई। कृपया हेल्पलाइन पर संपर्क करें।");
+      }
+    } catch {
+      setError("नेटवर्क त्रुटि: सर्वर से संपर्क नहीं हो पाया।");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submittedTicket) {
+    return (
+      <div className="mt-4 rounded-xl border border-[#A7F3D0] bg-[#ECFDF5] p-4 text-xs text-[#065F46]">
+        <p className="font-bold text-sm text-[#047857]">✅ आपका संदेश सफलतापूर्वक दर्ज हो गया है!</p>
+        <p className="mt-1">
+          सपोर्ट टिकट आईडी: <span className="font-mono font-bold">{submittedTicket}</span>
+        </p>
+        <p className="mt-1 text-[11px] text-[#065F46]">
+          हमारी टीम अगले 2 घंटे के भीतर आपके मोबाइल नंबर पर संपर्क करेगी।
+        </p>
+        <button
+          onClick={() => setSubmittedTicket(null)}
+          className="mt-3 text-xs font-bold text-[#047857] underline"
+        >
+          नया संदेश भेजें
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+      {error && (
+        <div className="rounded-xl border border-[#FECDD3] bg-[#FFF1F2] p-3 text-xs text-[#9F1239]">
+          {error}
+        </div>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input
+          required
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="आपका नाम"
+          className="rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
+        />
+        <input
+          required
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="मोबाइल नंबर (+91)"
+          className="rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
+        />
+      </div>
+      <textarea
+        required
+        rows={3}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="आपका संदेश या समस्या का विवरण..."
+        className="w-full rounded-xl border border-[#CBD5E1] bg-white p-2.5 text-xs text-[#0F172A] focus:border-[#0B4F48] focus:outline-none"
+      ></textarea>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-xl bg-[#0B4F48] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#083E38] transition shadow disabled:opacity-50"
+      >
+        {submitting ? "भेजा जा रहा है..." : "संदेश भेजें →"}
+      </button>
+    </form>
   );
 }

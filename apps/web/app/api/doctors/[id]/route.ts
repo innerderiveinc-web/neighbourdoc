@@ -12,7 +12,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     const { id } = await context.params;
-    return ok(api.updateDoctor(id, await readJson(request)));
+    return ok(api.updateDoctor(id, await readJson(request), guard.user));
   } catch (error) {
     return fail(error, 404);
   }
