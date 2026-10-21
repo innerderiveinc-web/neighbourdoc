@@ -20,6 +20,7 @@
     "prisma:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
     "seed": "tsx --env-file=.env packages/database/src/seed.ts",
+    "postinstall": "prisma generate --schema packages/database/prisma/schema.prisma",
     "verify": "npm run typecheck && npm test && npm run build:web && npm run build:admin && npm run build:doctor && rm -rf apps/web/.next apps/admin/.next apps/doctor/.next"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.16.4",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
