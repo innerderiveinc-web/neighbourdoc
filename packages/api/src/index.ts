@@ -78,7 +78,9 @@ export type WhatsAppTemplate =
   | "doctor_call_15_minutes"
   | "prescription_ready"
   | "feedback_request"
-  | "follow_up_reminder";
+  | "follow_up_reminder"
+  | "sla_breach_apology"
+  | "doctor_escalation_alert";
 
 export type VerificationStatus = "pending" | "verified" | "rejected";
 export type AvailabilityStatus = "online" | "offline" | "busy";
@@ -141,11 +143,29 @@ export type DemoConsultation = {
   status: ConsultationStatus;
   paymentStatus: PaymentStatus;
   callbackDeadline: string | null;
+  paidAt?: string;
   startedAt: string | null;
   completedAt: string | null;
+  cancellationReason?: string;
   consentAt: string;
   referralSource?: string;
   createdAt: string;
+};
+
+export type SlaWatchdogAction = {
+  consultationId: string;
+  action: "escalated_reassigned" | "auto_refunded" | "healthy";
+  elapsedMinutes: number;
+  details: string;
+};
+
+export type SlaWatchdogReport = {
+  timestamp: string;
+  totalActiveConsultations: number;
+  healthyCount: number;
+  escalatedCount: number;
+  autoRefundedCount: number;
+  actions: SlaWatchdogAction[];
 };
 
 export type DemoPayment = {
@@ -622,6 +642,14 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
     follow_up_reminder: {
       English: "Namaste! This is a health check-in from NeighbourDoc. If your symptoms persist or if you have any questions, our doctors are here to help.",
       Hindi: "नमस्ते! NeighbourDoc से आपकी सेहत की खैरियत का संदेश है। यदि तकलीफ़ अभी भी बनी हुई है, तो तुरंत डॉक्टर से दोबारा सलाह लें।"
+    },
+    sla_breach_apology: {
+      English: "Namaste! Under NeighbourDoc's 15-Minute Guarantee, because a doctor could not connect in time, your full consultation fee has been auto-refunded to your account. We sincerely apologize for the delay.",
+      Hindi: "नमस्ते! NeighbourDoc की 15-मिनट गारंटी के तहत डॉक्टर समय पर उपलब्ध न होने के कारण आपका पूरा परामर्श शुल्क स्वतः वापस कर दिया गया है। असुविधा के लिए हमें खेद है।"
+    },
+    doctor_escalation_alert: {
+      English: "URGENT SLA ESCALATION: A patient consultation has been re-assigned to you due to clinician inactivity. Please connect immediately.",
+      Hindi: "अति आवश्यक SLA सूचना: पूर्व डॉक्टर की अनुपलब्धता के कारण एक मरीज का परामर्श आपको पुनः सौंपा गया है। कृपया तत्काल कॉल करें।"
     }
   };
 
@@ -1228,6 +1256,7 @@ export function createDemoApi(persistencePath?: string) {
       payment.status = "paid";
 
       consultation.paymentStatus = "paid";
+      consultation.paidAt = nowIso();
       consultation.status = "paid";
       const assigned = assignDoctor(consultation.id);
       const patientUser = state.users.find((item) => item.id === consultation.patientUserId);
@@ -1498,19 +1527,184 @@ export function createDemoApi(persistencePath?: string) {
         createdAt: nowIso()
       });
 
+      const isSlaBreach = reason.startsWith("SLA_BREACH");
+      const notifLanguage = patientUser?.language === "English" ? "English" : "Hindi";
+      const notifMessage = isSlaBreach
+        ? buildWhatsAppMessage("sla_breach_apology", notifLanguage)
+        : `Namaste! Your consultation fee of ₹${consultation.amount / 100} has been refunded. Reason: ${reason}. For queries, contact support@neighbourdoc.in`;
+
       state.notifications.push({
         id: id("notification"),
         channel: "whatsapp",
         phone: patientUser?.phone ?? "",
-        template: "refund_processed",
-        language: patientUser?.language === "English" ? "English" : "Hindi",
-        message: `Namaste! Your consultation fee of ₹${consultation.amount / 100} has been refunded. Reason: ${reason}. For queries, contact support@neighbourdoc.in`,
+        template: isSlaBreach ? "sla_breach_apology" : "refund_processed",
+        language: notifLanguage,
+        message: notifMessage,
         status: "queued",
         createdAt: nowIso()
       });
 
       saveState();
       return { ok: true as const, consultation, payment };
+    },
+    reassignDoctor(consultationId: string, reason: string = "SLA_ESCALATION_DOCTOR_TIMEOUT") {
+      const consultation = state.consultations.find((item) => item.id === consultationId);
+      if (!consultation) throw new Error("Consultation not found.");
+      const patient = state.patients.find((item) => item.id === consultation.patientId);
+      if (!patient) throw new Error("Patient not found.");
+      const patientUser = state.users.find((item) => item.id === consultation.patientUserId);
+
+      // Filter out the currently assigned doctor to find a fresh clinician
+      const candidates = state.doctors
+        .filter((d) => d.id !== consultation.doctorId)
+        .map(toCandidate);
+
+      const selected = selectDoctorForConsultation(candidates, {
+        city: patient.city,
+        language: patientUser?.language ?? "Hindi"
+      });
+
+      if (!selected) {
+        return null;
+      }
+
+      const prevDoctorId = consultation.doctorId;
+      const newDoctor = state.doctors.find((item) => item.id === selected.id);
+      if (!newDoctor) return null;
+
+      const assignedAt = nowIso();
+      newDoctor.lastAssignedAt = assignedAt;
+      consultation.doctorId = newDoctor.id;
+      consultation.doctorUserId = newDoctor.userId;
+      consultation.status = "assigned";
+
+      const slaMinutes = state.settings?.slaCallbackMinutes ?? 15;
+      consultation.callbackDeadline = callbackDeadline(new Date(assignedAt), slaMinutes).toISOString();
+
+      const newDoctorUser = state.users.find((u) => u.id === newDoctor.userId);
+
+      // Audit log
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: "system_sla_watchdog",
+        action: "sla_watchdog_doctor_escalation_reassigned",
+        entityType: "consultation",
+        entityId: consultationId,
+        metadata: { prevDoctorId, newDoctorId: newDoctor.id, reason },
+        createdAt: assignedAt
+      });
+
+      // Dispatch urgent escalation WhatsApp to new doctor
+      if (newDoctorUser?.phone) {
+        state.notifications.push({
+          id: id("notification"),
+          channel: "whatsapp",
+          phone: newDoctorUser.phone,
+          template: "doctor_escalation_alert",
+          language: "Hindi",
+          message: buildWhatsAppMessage("doctor_escalation_alert", "Hindi"),
+          status: "queued",
+          createdAt: assignedAt
+        });
+      }
+
+      saveState();
+      return { consultation, newDoctor, prevDoctorId };
+    },
+    runSlaWatchdogCycle(options?: { customNow?: Date; autoRefundAdminActor?: AuthTokenPayload }) {
+      const now = options?.customNow ?? new Date();
+      const nowMs = now.getTime();
+      const adminActor = options?.autoRefundAdminActor ?? {
+        sub: "system_sla_watchdog",
+        role: "admin" as const,
+        language: "English" as const
+      };
+
+      const report: SlaWatchdogReport = {
+        timestamp: now.toISOString(),
+        totalActiveConsultations: 0,
+        healthyCount: 0,
+        escalatedCount: 0,
+        autoRefundedCount: 0,
+        actions: []
+      };
+
+      // Scan all paid consultations that have not completed or refunded
+      const activeConsultations = state.consultations.filter(
+        (c) =>
+          c.paymentStatus === "paid" &&
+          (c.status === "paid" || c.status === "assigned" || c.status === "queued") &&
+          c.status !== "completed" &&
+          c.status !== "refunded"
+      );
+
+      report.totalActiveConsultations = activeConsultations.length;
+
+      for (const consultation of activeConsultations) {
+        // Calculate elapsed time from paidAt or createdAt
+        const refTimeStr = consultation.paidAt || consultation.createdAt;
+        const referenceTime = refTimeStr ? new Date(refTimeStr).getTime() : nowMs;
+        const elapsedMs = Math.max(0, nowMs - referenceTime);
+        const elapsedMinutes = Math.floor(elapsedMs / (60 * 1000));
+
+        // Threshold 1: >= 15 Minutes -> Autonomous SLA Breach Auto-Refund
+        if (elapsedMinutes >= 15) {
+          try {
+            api.executeRefund(consultation.id, adminActor, "SLA_BREACH_15MIN_AUTOREFUND");
+            consultation.cancellationReason = "SLA_BREACH_15MIN_AUTOREFUND";
+            report.autoRefundedCount += 1;
+            report.actions.push({
+              consultationId: consultation.id,
+              action: "auto_refunded",
+              elapsedMinutes,
+              details: `Auto-refunded ₹${consultation.amount / 100} due to 15-minute SLA breach.`
+            });
+          } catch (err: any) {
+            report.actions.push({
+              consultationId: consultation.id,
+              action: "auto_refunded",
+              elapsedMinutes,
+              details: `Refund error: ${err.message}`
+            });
+          }
+          continue;
+        }
+
+        // Threshold 2: >= 8 Minutes & < 15 Minutes -> Autonomous Escalation & Clinician Reassignment
+        if (elapsedMinutes >= 8) {
+          const reassignResult = api.reassignDoctor(consultation.id, "SLA_ESCALATION_8MIN_TIMEOUT");
+          if (reassignResult) {
+            report.escalatedCount += 1;
+            report.actions.push({
+              consultationId: consultation.id,
+              action: "escalated_reassigned",
+              elapsedMinutes,
+              details: `Escalated and reassigned from Dr. ${reassignResult.prevDoctorId} to Dr. ${reassignResult.newDoctor.id}.`
+            });
+          } else {
+            report.healthyCount += 1;
+            report.actions.push({
+              consultationId: consultation.id,
+              action: "healthy",
+              elapsedMinutes,
+              details: `Approaching SLA limit (${elapsedMinutes}m elapsed), no alternate clinician online.`
+            });
+          }
+          continue;
+        }
+
+        // Within normal SLA limit (< 8 minutes)
+        report.healthyCount += 1;
+        report.actions.push({
+          consultationId: consultation.id,
+          action: "healthy",
+          elapsedMinutes,
+          details: `Normal SLA progress (${elapsedMinutes}m elapsed).`
+        });
+      }
+
+      saveState();
+      return report;
     },
     createContactTicket(input: { name: string; phone: string; message: string }) {
       if (!input.name || !input.phone || !input.message) {

@@ -291,6 +291,66 @@ test("HEALTHCARE SLA: executes 15-minute SLA breach refunds with audit trails an
   assert.equal(refundLog.entityId, consultationId);
 });
 
+test("AUTONOMOUS AGENT: SLA Watchdog scans, escalates at T+8m, and auto-refunds at T+15m with apology notification", () => {
+  const api = createDemoApi(":memory:");
+
+  // Create booking
+  const booking = api.createConsultation({
+    name: "Aarti Devi",
+    phone: "+919811122233",
+    age: 29,
+    gender: "female",
+    city: "Varanasi",
+    language: "Hindi",
+    symptoms: "Persistent headache",
+    plan: "basic",
+    consent: true
+  });
+  assert.equal(booking.ok, true);
+  const consultationId = booking.consultation.id;
+
+  api.verifyPayment({
+    consultationId,
+    orderId: "order_watchdog_1",
+    gatewayPaymentId: "pay_watchdog_1"
+  });
+
+  const state = api.getState();
+  const consultation = state.consultations.find((c) => c.id === consultationId)!;
+  const initialDoctorId = consultation.doctorId;
+  assert.ok(initialDoctorId);
+
+  // 1. Tick at T + 2 minutes: Healthy progress
+  const tPlus2 = new Date(new Date(consultation.createdAt).getTime() + 2 * 60 * 1000);
+  const report2 = api.runSlaWatchdogCycle({ customNow: tPlus2 });
+  assert.equal(report2.healthyCount, 1);
+  assert.equal(report2.escalatedCount, 0);
+  assert.equal(report2.autoRefundedCount, 0);
+
+  // 2. Tick at T + 9 minutes: Escalation threshold reached -> Auto reassigns doctor
+  const tPlus9 = new Date(new Date(consultation.createdAt).getTime() + 9 * 60 * 1000);
+  const report9 = api.runSlaWatchdogCycle({ customNow: tPlus9 });
+  assert.equal(report9.escalatedCount, 1);
+  assert.notEqual(consultation.doctorId, initialDoctorId);
+
+  // Check alert notification sent to new doctor
+  const escalationNotif = state.notifications.find((n) => n.template === "doctor_escalation_alert");
+  assert.ok(escalationNotif);
+
+  // 3. Tick at T + 16 minutes: 15-minute guarantee breached -> Auto refund executed
+  const tPlus16 = new Date(new Date(consultation.createdAt).getTime() + 16 * 60 * 1000);
+  const report16 = api.runSlaWatchdogCycle({ customNow: tPlus16 });
+  assert.equal(report16.autoRefundedCount, 1);
+  assert.equal(consultation.status, "refunded");
+  assert.equal(consultation.paymentStatus, "refunded");
+  assert.equal(consultation.cancellationReason, "SLA_BREACH_15MIN_AUTOREFUND");
+
+  // Check apology notification with 15-minute guarantee text dispatched to patient
+  const apologyNotif = state.notifications.find((n) => n.template === "sla_breach_apology");
+  assert.ok(apologyNotif);
+  assert.ok(apologyNotif.message.includes("15-मिनट गारंटी"));
+});
+
 test("SUPPORT WORKFLOW: creates persistent contact and grievance support tickets", () => {
   const api = createDemoApi(":memory:");
 

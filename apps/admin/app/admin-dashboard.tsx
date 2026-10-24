@@ -20,6 +20,9 @@ type Consultation = {
   paymentStatus: string;
   amount: number;
   callbackDeadline: string | null;
+  paidAt?: string;
+  createdAt?: string;
+  cancellationReason?: string;
 };
 
 type DoctorPerformance = {
@@ -68,6 +71,10 @@ export function AdminDashboardClient() {
   const [settingsForm, setSettingsForm] = useState<Partial<SystemSettings>>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState("");
+
+  // SLA Watchdog State
+  const [watchdogRunning, setWatchdogRunning] = useState(false);
+  const [watchdogNotice, setWatchdogNotice] = useState("");
 
   function getAdminToken() {
     return localStorage.getItem("neighbourdoc_admin_token") || localStorage.getItem("neighbordoc_admin_token");
@@ -227,6 +234,34 @@ export function AdminDashboardClient() {
       }
     } catch {
       alert("✗ सर्वर से कनेक्शन विफल रहा।");
+    }
+  }
+
+  async function handleTriggerWatchdog() {
+    const token = getAdminToken();
+    if (!token) return;
+    setWatchdogRunning(true);
+    try {
+      const res = await fetch("/api/admin/sla-watchdog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWatchdogNotice(
+          `✓ SLA वॉचडॉग चक्र पूर्ण: ${data.autoRefundedCount} स्वतः-रिफंड, ${data.escalatedCount} चिकित्सक पुनर्निधारण, ${data.healthyCount} सुरक्षित`
+        );
+        refresh();
+      } else {
+        setWatchdogNotice(`✗ वॉचडॉग त्रुटि: ${data.error ?? "चक्र निष्पादित नहीं हो सका।"}`);
+      }
+    } catch {
+      setWatchdogNotice("✗ सर्वर से कनेक्शन विफल रहा।");
+    } finally {
+      setWatchdogRunning(false);
     }
   }
 
@@ -398,10 +433,34 @@ export function AdminDashboardClient() {
           <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             {/* Real-time Consultation Timeline */}
             <Surface className="border-[#E2E8F0]">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-[#0F172A]">लाइव परामर्श टाइमलाइन</h2>
-                <span className="text-xs text-[#64748B]">रीयल-टाइम सिंक</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] pb-3">
+                <div>
+                  <h2 className="text-lg font-black text-[#0F172A] flex items-center gap-2">
+                    लाइव परामर्श टाइमलाइन
+                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      15-Min SLA Watchdog
+                    </span>
+                  </h2>
+                  <p className="text-xs text-[#64748B]">
+                    T+8m स्वतः-पुनर्निधारण • T+15m स्वतः-रिफंड व WhatsApp क्षमा संदेश
+                  </p>
+                </div>
+                <button
+                  disabled={watchdogRunning}
+                  onClick={handleTriggerWatchdog}
+                  className="rounded-xl border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-bold text-[#0F172A] hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {watchdogRunning ? "⏳ वॉचडॉग चल रहा है..." : "⚡ अभी SLA चेक चलाएं"}
+                </button>
               </div>
+
+              {watchdogNotice && (
+                <div className="mt-3 rounded-xl bg-teal-50 border border-teal-200 p-2.5 text-xs font-medium text-teal-800 flex justify-between items-center">
+                  <span>{watchdogNotice}</span>
+                  <button onClick={() => setWatchdogNotice("")} className="text-teal-600 hover:text-teal-900 font-bold ml-2">✕</button>
+                </div>
+              )}
 
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full min-w-[550px] text-left text-xs">
@@ -417,7 +476,15 @@ export function AdminDashboardClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F1F5F9]">
-                    {consultations.map((row) => (
+                    {consultations.map((row) => {
+                      const nowMs = Date.now();
+                      const refTime = row.paidAt || row.createdAt;
+                      const elapsedMinutes = refTime ? Math.floor(Math.max(0, nowMs - new Date(refTime).getTime()) / 60000) : 0;
+                      const slaLimit = settings?.slaCallbackMinutes ?? 15;
+                      const isBreached = elapsedMinutes >= slaLimit;
+                      const isEscalated = elapsedMinutes >= 8 && elapsedMinutes < slaLimit;
+
+                      return (
                       <tr className="hover:bg-[#F8FAFC]" key={row.id}>
                         <td className="py-3 font-mono text-[11px] font-bold text-[#0B4F48]">{row.id.slice(0, 14)}</td>
                         <td className="py-3 font-medium text-[#334155]">{row.symptoms}</td>
@@ -445,13 +512,26 @@ export function AdminDashboardClient() {
                             {row.paymentStatus === "paid" ? "सफल" : row.paymentStatus === "refunded" ? "रिफंडेड" : "लंबित"}
                           </span>
                         </td>
-                        <td className="py-3 text-[11px] font-bold text-[#475569]">
-                          {row.callbackDeadline
-                            ? new Date(row.callbackDeadline).toLocaleTimeString("en-IN", {
-                                hour: "2-digit",
-                                minute: "2-digit"
-                              })
-                            : "प्रतीक्षा"}
+                        <td className="py-3 text-[11px] font-bold">
+                          {row.status === "refunded" ? (
+                            <span className="text-rose-600">
+                              रिफंडेड {row.cancellationReason === "SLA_BREACH_15MIN_AUTOREFUND" ? "(15m उल्लंघन)" : ""}
+                            </span>
+                          ) : row.status === "completed" ? (
+                            <span className="text-emerald-700">पूर्ण</span>
+                          ) : isBreached ? (
+                            <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800 font-bold animate-pulse">
+                              🚨 {elapsedMinutes}m (उल्लंघन)
+                            </span>
+                          ) : isEscalated ? (
+                            <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-amber-800 font-bold">
+                              ⚠️ {elapsedMinutes}m / {slaLimit}m (री-असाइंड)
+                            </span>
+                          ) : (
+                            <span className="text-[#0B4F48]">
+                              ⏱️ {elapsedMinutes}m / {slaLimit}m
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 font-bold text-[#0F172A]">₹{row.amount / 100}</td>
                         <td className="py-3 text-right">
@@ -459,19 +539,24 @@ export function AdminDashboardClient() {
                             <span className="inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">
                               रिफंडेड
                             </span>
-                          ) : row.status !== "completed" && row.callbackDeadline && new Date(row.callbackDeadline).getTime() < Date.now() ? (
+                          ) : row.status !== "completed" && isBreached ? (
                             <button
                               onClick={() => handleIssueRefund(row.id)}
                               className="rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-rose-700 transition shadow-sm"
                             >
                               SLA रिफंड करें
                             </button>
+                          ) : row.status !== "completed" && isEscalated ? (
+                            <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                              एस्केलेटेड
+                            </span>
                           ) : (
                             <span className="text-[11px] text-[#94A3B8]">सामान्य</span>
                           )}
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                     {consultations.length === 0 && (
                       <tr>
                         <td className="py-8 text-center text-[#94A3B8]" colSpan={7}>
