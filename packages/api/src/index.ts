@@ -80,7 +80,8 @@ export type WhatsAppTemplate =
   | "feedback_request"
   | "follow_up_reminder"
   | "sla_breach_apology"
-  | "doctor_escalation_alert";
+  | "doctor_escalation_alert"
+  | "follow_up_escalation_alert";
 
 export type VerificationStatus = "pending" | "verified" | "rejected";
 export type AvailabilityStatus = "online" | "offline" | "busy";
@@ -147,9 +148,20 @@ export type DemoConsultation = {
   startedAt: string | null;
   completedAt: string | null;
   cancellationReason?: string;
+  followUpSentAt?: string;
+  followUpStatus?: "pending" | "sent" | "recovered" | "mild_symptoms" | "worsened_escalated";
+  followUpResponseAt?: string;
+  followUpResponseNotes?: string;
   consentAt: string;
   referralSource?: string;
   createdAt: string;
+};
+
+export type Day3FollowUpReport = {
+  timestamp: string;
+  eligibleCompletedConsultations: number;
+  remindersSentCount: number;
+  consultationIds: string[];
 };
 
 export type SlaWatchdogAction = {
@@ -640,8 +652,8 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
       Hindi: "नमस्ते! आशा है डॉक्टर से बातचीत के बाद आप बेहतर महसूस कर रहे हैं। कृपया 30 सेकंड में अपना अनुभव साझा करें।"
     },
     follow_up_reminder: {
-      English: "Namaste! This is a health check-in from NeighbourDoc. If your symptoms persist or if you have any questions, our doctors are here to help.",
-      Hindi: "नमस्ते! NeighbourDoc से आपकी सेहत की खैरियत का संदेश है। यदि तकलीफ़ अभी भी बनी हुई है, तो तुरंत डॉक्टर से दोबारा सलाह लें।"
+      English: "Namaste! This is a health check-in from NeighbourDoc regarding your recent consultation. Please reply with: 1 - Fully recovered, 2 - Mild symptoms persist, 3 - Symptoms worsening (Free priority doctor review).",
+      Hindi: "नमस्ते! NeighbourDoc से आपकी सेहत की खैरियत का संदेश है। कृपया रिप्लाई करें:\n1 - पूरी तरह स्वस्थ हूँ\n2 - हल्का दर्द/बुखार बना हुआ है\n3 - तबियत बिगड़ रही है (डॉक्टर से निःशुल्क पुनः सलाह)"
     },
     sla_breach_apology: {
       English: "Namaste! Under NeighbourDoc's 15-Minute Guarantee, because a doctor could not connect in time, your full consultation fee has been auto-refunded to your account. We sincerely apologize for the delay.",
@@ -650,6 +662,10 @@ export function buildWhatsAppMessage(template: WhatsAppTemplate, language: "Hind
     doctor_escalation_alert: {
       English: "URGENT SLA ESCALATION: A patient consultation has been re-assigned to you due to clinician inactivity. Please connect immediately.",
       Hindi: "अति आवश्यक SLA सूचना: पूर्व डॉक्टर की अनुपलब्धता के कारण एक मरीज का परामर्श आपको पुनः सौंपा गया है। कृपया तत्काल कॉल करें।"
+    },
+    follow_up_escalation_alert: {
+      English: "URGENT CLINICAL ESCALATION: Patient reported worsening symptoms on Day-3 follow-up. Free priority re-consultation opened.",
+      Hindi: "अति आवश्यक चिकित्सीय सूचना: मरीज ने डे-3 फॉलो-अप पर तबियत बिगड़ने की रिपोर्ट की है। निःशुल्क प्राथमिकता री-कंसल्टेशन सक्रिय किया गया।"
     }
   };
 
@@ -1705,6 +1721,143 @@ export function createDemoApi(persistencePath?: string) {
 
       saveState();
       return report;
+    },
+    runDay3FollowUpAgentCycle(options?: { customNow?: Date }) {
+      const now = options?.customNow ?? new Date();
+      const nowMs = now.getTime();
+
+      const report: Day3FollowUpReport = {
+        timestamp: now.toISOString(),
+        eligibleCompletedConsultations: 0,
+        remindersSentCount: 0,
+        consultationIds: []
+      };
+
+      const eligible = state.consultations.filter((c) => {
+        if (c.status !== "completed" || !c.completedAt) return false;
+        if (c.followUpSentAt) return false;
+        const completedTime = new Date(c.completedAt).getTime();
+        const elapsedMs = nowMs - completedTime;
+        // Eligible if at least 48 hours have passed since consultation completion
+        return elapsedMs >= 48 * 60 * 60 * 1000;
+      });
+
+      report.eligibleCompletedConsultations = eligible.length;
+
+      for (const consultation of eligible) {
+        consultation.followUpSentAt = now.toISOString();
+        consultation.followUpStatus = "sent";
+
+        const patientUser = state.users.find((u) => u.id === consultation.patientUserId);
+        const language = patientUser?.language === "English" ? "English" : "Hindi";
+
+        state.notifications.push({
+          id: id("notification"),
+          channel: "whatsapp",
+          phone: patientUser?.phone ?? "",
+          template: "follow_up_reminder",
+          language,
+          message: buildWhatsAppMessage("follow_up_reminder", language),
+          status: "queued",
+          createdAt: now.toISOString()
+        });
+
+        state.auditLogs.push({
+          id: id("audit"),
+          actorId: "system_day3_followup_agent",
+          action: "day3_followup_reminder_sent",
+          entityType: "consultation",
+          entityId: consultation.id,
+          metadata: { patientUserId: consultation.patientUserId, completedAt: consultation.completedAt },
+          createdAt: now.toISOString()
+        });
+
+        report.remindersSentCount += 1;
+        report.consultationIds.push(consultation.id);
+      }
+
+      saveState();
+      return report;
+    },
+    recordFollowUpResponse(
+      consultationId: string,
+      input: { responseCode: "1" | "2" | "3" | 1 | 2 | 3; notes?: string }
+    ) {
+      const consultation = state.consultations.find((item) => item.id === consultationId);
+      if (!consultation) throw new Error("Consultation not found.");
+
+      const codeStr = String(input.responseCode).trim();
+      const now = nowIso();
+      consultation.followUpResponseAt = now;
+      if (input.notes) consultation.followUpResponseNotes = input.notes;
+
+      const patientUser = state.users.find((u) => u.id === consultation.patientUserId);
+      const isEnglish = patientUser?.language === "English";
+
+      let feedbackReply = "";
+      let outcome: "recovered" | "mild_symptoms" | "worsened_escalated";
+
+      if (codeStr === "1") {
+        outcome = "recovered";
+        consultation.followUpStatus = "recovered";
+        feedbackReply = isEnglish
+          ? "Thank you for the update! We are delighted to hear you are fully recovered. NeighbourDoc wishes you and your family good health."
+          : "धन्यवाद! आपकी सेहत सुधरने पर हमें बेहद खुशी है। NeighbourDoc आपके और आपके परिवार के उत्तम स्वास्थ्य की सदैव कामना करता है।";
+      } else if (codeStr === "2") {
+        outcome = "mild_symptoms";
+        consultation.followUpStatus = "mild_symptoms";
+        feedbackReply = isEnglish
+          ? "Please ensure you finish the prescribed course of medication as directed by the doctor. If symptoms persist beyond 24 hours, feel free to book a review."
+          : "कृपया डॉक्टर द्वारा बताए गए पर्चे की दवाइयां व पूरा कोर्स समय पर लें। 24 घंटे में सुधार न होने पर दोबारा निःसंकोच परामर्श लें।";
+      } else {
+        outcome = "worsened_escalated";
+        consultation.followUpStatus = "worsened_escalated";
+        consultation.status = "escalated";
+
+        // Notify assigned doctor about worsening condition
+        const doctor = state.doctors.find((d) => d.id === consultation.doctorId);
+        const doctorUser = state.users.find((u) => u.id === doctor?.userId);
+        if (doctorUser?.phone) {
+          state.notifications.push({
+            id: id("notification"),
+            channel: "whatsapp",
+            phone: doctorUser.phone,
+            template: "follow_up_escalation_alert",
+            language: "Hindi",
+            message: buildWhatsAppMessage("follow_up_escalation_alert", "Hindi"),
+            status: "queued",
+            createdAt: now
+          });
+        }
+
+        feedbackReply = isEnglish
+          ? "⚠️ Your condition has been escalated with priority. Our clinical team is arranging a free review call with the doctor. If you experience severe chest pain, breathlessness, or collapse, please call 112 immediately."
+          : "⚠️ आपकी स्थिति को प्राथमिकता सूची में दर्ज कर लिया गया है। डॉक्टर साहब से आपकी निःशुल्क फॉलो-अप बातचीत कराई जा रही है। यदि सांस लेने में तकलीफ़ या सीने में दर्द हो, तो तुरंत आपातकालीन हेल्पलाइन 112 पर संपर्क करें।";
+      }
+
+      state.notifications.push({
+        id: id("notification"),
+        channel: "whatsapp",
+        phone: patientUser?.phone ?? "",
+        template: "follow_up_reminder",
+        language: isEnglish ? "English" : "Hindi",
+        message: feedbackReply,
+        status: "queued",
+        createdAt: now
+      });
+
+      state.auditLogs.push({
+        id: id("audit"),
+        actorId: consultation.patientUserId || "patient",
+        action: "day3_followup_response_received",
+        entityType: "consultation",
+        entityId: consultation.id,
+        metadata: { responseCode: codeStr, outcome, notes: input.notes },
+        createdAt: now
+      });
+
+      saveState();
+      return { ok: true as const, outcome, feedbackReply, consultation };
     },
     createContactTicket(input: { name: string; phone: string; message: string }) {
       if (!input.name || !input.phone || !input.message) {

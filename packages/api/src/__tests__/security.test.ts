@@ -570,5 +570,93 @@ test("STATUTORY COMPLIANCE: blocks prohibited Schedule X medications in tele-pre
   );
 });
 
+test("AUTONOMOUS AGENT: Day-3 Follow-Up scans post-consultations, dispatches check-in, and escalates worsening condition", () => {
+  const api = createDemoApi(":memory:");
+
+  // Patient 1: Completed 72h ago, fully recovered
+  const b1 = api.createConsultation({
+    name: "Sunita Verma",
+    phone: "+919811100011",
+    age: 32,
+    gender: "female",
+    city: "Kanpur",
+    language: "Hindi",
+    symptoms: "Mild throat irritation",
+    plan: "basic",
+    consent: true
+  });
+  api.verifyPayment({ consultationId: b1.consultation.id, orderId: "ord_1", gatewayPaymentId: "pay_1" });
+  const comp1 = api.completeConsultation(b1.consultation.id, {
+    medicines: "Tab Paracetamol 500mg as needed",
+    advice: "Warm water gargles"
+  });
+
+  // Patient 2: Completed 72h ago, condition worsening
+  const b2 = api.createConsultation({
+    name: "Ramesh Tiwari",
+    phone: "+919811100022",
+    age: 48,
+    gender: "male",
+    city: "Lucknow",
+    language: "Hindi",
+    symptoms: "Fever and productive cough",
+    plan: "basic",
+    consent: true
+  });
+  api.verifyPayment({ consultationId: b2.consultation.id, orderId: "ord_2", gatewayPaymentId: "pay_2" });
+  const comp2 = api.completeConsultation(b2.consultation.id, {
+    medicines: "Tab Azithromycin 500mg daily",
+    advice: "Rest and fluids"
+  });
+
+  // Backdate both completed consultations by 72 hours
+  const now = Date.now();
+  const seventyTwoHoursAgo = new Date(now - 72 * 60 * 60 * 1000).toISOString();
+  b1.consultation.completedAt = seventyTwoHoursAgo;
+  b2.consultation.completedAt = seventyTwoHoursAgo;
+
+  // Run autonomous Day-3 follow-up agent cycle
+  const report = api.runDay3FollowUpAgentCycle();
+  assert.equal(report.eligibleCompletedConsultations, 2);
+  assert.equal(report.remindersSentCount, 2);
+  assert.equal(b1.consultation.followUpStatus, "sent");
+  assert.equal(b2.consultation.followUpStatus, "sent");
+
+  // Verify WhatsApp check-in messages contain quick-reply numbers 1, 2, 3
+  const notifications = api.getState().notifications.filter((n) => n.template === "follow_up_reminder");
+  assert.ok(notifications.length >= 2);
+  assert.ok(notifications[0].message.includes("1 - "));
+  assert.ok(notifications[0].message.includes("3 - "));
+
+  // Patient 1 replies: "1" (Fully recovered)
+  const res1 = api.recordFollowUpResponse(b1.consultation.id, { responseCode: "1" });
+  assert.equal(res1.ok, true);
+  assert.equal(res1.outcome, "recovered");
+  assert.equal(b1.consultation.followUpStatus, "recovered");
+
+  // Patient 2 replies: "3" (Condition worsening)
+  const res2 = api.recordFollowUpResponse(b2.consultation.id, {
+    responseCode: "3",
+    notes: "High fever 103F returned, chest tightness"
+  });
+  assert.equal(res2.ok, true);
+  assert.equal(res2.outcome, "worsened_escalated");
+  assert.equal(b2.consultation.status, "escalated");
+  assert.equal(b2.consultation.followUpStatus, "worsened_escalated");
+
+  // Verify urgent doctor clinical escalation alert was dispatched
+  const doctorAlert = api.getState().notifications.find((n) => n.template === "follow_up_escalation_alert");
+  assert.ok(doctorAlert);
+  assert.ok(doctorAlert.message.includes("अति आवश्यक"));
+
+  // Verify audit log has the patient's response and notes recorded
+  const auditLogs = api.listAuditLogs();
+  const followUpAudit = auditLogs.find(
+    (l) => l.action === "day3_followup_response_received" && l.entityId === b2.consultation.id
+  );
+  assert.ok(followUpAudit);
+  assert.equal(followUpAudit.metadata?.outcome, "worsened_escalated");
+});
+
 
 
