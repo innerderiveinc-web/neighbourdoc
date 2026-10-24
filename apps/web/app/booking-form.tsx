@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PrimaryButton, Surface } from "@neighbourdoc/ui";
+import { screenEmergencySymptoms } from "@neighbourdoc/shared";
 
 type BookingResult =
   | { status: "idle" }
@@ -28,6 +29,62 @@ const initialForm = {
 export function BookingForm() {
   const [form, setForm] = useState(initialForm);
   const [result, setResult] = useState<BookingResult>({ status: "idle" });
+  const [isListening, setIsListening] = useState(false);
+  const [showFirstAid, setShowFirstAid] = useState(false);
+
+  const emergencyAudit = form.symptoms.trim()
+    ? screenEmergencySymptoms(form.symptoms)
+    : { blocked: false, matchedTerms: [] as string[], message: "" };
+
+  function startVoiceRecording() {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("आपके ब्राउज़र में आवाज़ पहचान (Voice Input) की सुविधा समर्थित नहीं है। कृपया लिखकर लक्षण दर्ज करें।");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = form.language === "English" ? "en-IN" : "hi-IN";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript) {
+          setField("symptoms", form.symptoms ? `${form.symptoms} ${transcript}` : transcript);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
+  }
+
+  const quickSymptomChips = [
+    { label: "+ 2 दिन से बुखार", text: "2 दिन से बुखार और बदन दर्द है" },
+    { label: "+ खांसी-जुकाम", text: "गले में खराश, सूखी खांसी और छींकें हैं" },
+    { label: "+ पेट दर्द व उल्टी", text: "पेट में मरोड़ और दस्त की शिकायत है" },
+    { label: "+ सिरदर्द व कमजोरी", text: "तेज़ सिरदर्द और चक्कर आ रहे हैं" }
+  ];
+
   const [paymentModal, setPaymentModal] = useState<{
     open: boolean;
     consultationId: string;
@@ -43,6 +100,14 @@ export function BookingForm() {
   };
 
   async function submitBooking() {
+    if (emergencyAudit.blocked) {
+      setResult({
+        status: "blocked",
+        message: `आपातकालीन स्थिति: ${emergencyAudit.matchedTerms.join(", ")}। कृपया 112 या 108 डायल करें।`
+      });
+      return;
+    }
+
     if (!form.name.trim()) {
       setResult({ status: "error", message: "कृपया मरीज़ का नाम दर्ज करें।" });
       return;
@@ -309,17 +374,110 @@ export function BookingForm() {
           </div>
         </div>
 
-        {/* Symptoms Textarea */}
+        {/* Symptoms Textarea with Voice Intake */}
         <div>
-          <label className="block text-xs font-bold text-[#334155] mb-1">
-            क्या तकलीफ़ है? (लक्षण विस्तार से लिखें) <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-bold text-[#334155]">
+              क्या तकलीफ़ है? (लक्षण विस्तार से बताएं) <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={startVoiceRecording}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition shadow-sm ${
+                isListening
+                  ? "bg-red-500 text-white animate-pulse"
+                  : "bg-teal-50 text-[#0B4F48] border border-teal-200 hover:bg-teal-100"
+              }`}
+            >
+              <span>{isListening ? "🔴 सुन रहे हैं... बोलिए" : "🎙️ बोलकर बताएं (Voice Input)"}</span>
+            </button>
+          </div>
+
           <textarea
-            className="w-full min-h-[90px] rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] p-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#0B4F48] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0B4F48]/15 transition"
+            className={`w-full min-h-[90px] rounded-xl border p-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:bg-white focus:outline-none focus:ring-2 transition ${
+              emergencyAudit.blocked
+                ? "border-red-400 bg-red-50/40 focus:border-red-500 focus:ring-red-200"
+                : "border-[#CBD5E1] bg-[#F8FAFC] focus:border-[#0B4F48] focus:ring-[#0B4F48]/15"
+            }`}
             value={form.symptoms}
             onChange={(e) => setField("symptoms", e.target.value)}
-            placeholder="उदा. 2 दिन से बुखार है, गले में दर्द और बदन दर्द हो रहा है..."
+            placeholder="उदा. 2 दिन से बुखार है, गले में दर्द और बदन दर्द हो रहा है... (या माइक बटन दबाकर बोलें)"
           />
+
+          {/* Quick Rural Chips */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="text-[11px] font-medium text-[#64748B] self-center">जल्दी जोड़ें:</span>
+            {quickSymptomChips.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() =>
+                  setField(
+                    "symptoms",
+                    form.symptoms ? `${form.symptoms}, ${chip.text}` : chip.text
+                  )
+                }
+                className="rounded-lg border border-[#CBD5E1] bg-white px-2 py-0.5 text-[11px] font-medium text-[#475569] hover:border-[#0B4F48] hover:text-[#0B4F48] transition"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Emergency Guardian Intercept Banner */}
+          {emergencyAudit.blocked && (
+            <div className="mt-3 rounded-2xl border-2 border-red-500 bg-red-50 p-4 shadow-md">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🚨</span>
+                <div className="flex-1">
+                  <h4 className="text-sm font-black text-red-900">
+                    आपातकालीन संकेत मिले: {emergencyAudit.matchedTerms.join(", ")}
+                  </h4>
+                  <p className="mt-1 text-xs text-red-800 leading-relaxed">
+                    यह स्थिति गंभीर या जानलेवा हो सकती है। भारत सरकार के टेलीमेडिसिन दिशा-निर्देशों के अनुसार इसके लिए तत्काल अस्पताल जाना अनिवार्य है।
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href="tel:112"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-2 text-xs font-black text-white hover:bg-red-700 shadow transition"
+                    >
+                      📞 112 डायल करें (Emergency)
+                    </a>
+                    <a
+                      href="tel:108"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-2 text-xs font-black text-white hover:bg-red-800 shadow transition"
+                    >
+                      🚑 108 डायल करें (Ambulance)
+                    </a>
+                    <a
+                      href="tel:1800116117"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-2 text-xs font-bold text-red-800 hover:bg-red-100 transition"
+                    >
+                      🧪 1800-116-117 (विषाक्तता केंद्र)
+                    </a>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowFirstAid(!showFirstAid)}
+                    className="mt-3 text-xs font-bold text-red-700 underline hover:text-red-900 block"
+                  >
+                    {showFirstAid ? "▲ प्राथमिक उपचार निर्देश छुपाएं" : "▼ आपातकालीन प्राथमिक उपचार (First Aid) देखें"}
+                  </button>
+
+                  {showFirstAid && (
+                    <div className="mt-2.5 rounded-xl bg-white p-3 border border-red-200 text-xs text-red-950 space-y-1.5">
+                      <p><strong>सीने में दर्द या भारीपन:</strong> मरीज को शांत बैठाएं, तंग कपड़े तुरंत ढीले करें।</p>
+                      <p><strong>सांस लेने में तकलीफ़:</strong> मरीज को तकिए के सहारे 45 डिग्री पर बैठाएं।</p>
+                      <p><strong>बेहोशी या दौरा:</strong> मरीज को बाएं करवट लिटाएं (Recovery Position), मुंह में कुछ न डालें।</p>
+                      <p><strong>सांप का काटना:</strong> काटे अंग को स्थिर रखें, पट्टी अधिक कसकर न बांधें, तुरंत अस्पताल पहुंचें।</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Existing Illnesses (Optional) */}
@@ -350,11 +508,15 @@ export function BookingForm() {
 
         {/* Submit Button */}
         <PrimaryButton
-          disabled={result.status === "loading"}
+          disabled={result.status === "loading" || emergencyAudit.blocked}
           onClick={submitBooking}
-          className="w-full text-base py-3.5"
+          className={`w-full text-base py-3.5 ${
+            emergencyAudit.blocked ? "opacity-50 cursor-not-allowed bg-red-500 hover:bg-red-500" : ""
+          }`}
         >
-          {result.status === "loading"
+          {emergencyAudit.blocked
+            ? "⛔ आपातकाल: तुरंत 112 डायल करें"
+            : result.status === "loading"
             ? "डॉक्टर से संपर्क हो रहा है..."
             : `₹${form.plan === "priority" ? "99" : "49"} फीस देकर डॉक्टर बुक करें`}
         </PrimaryButton>
