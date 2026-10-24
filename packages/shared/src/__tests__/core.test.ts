@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import {
   canAccessConsultation,
   detectEmergency,
+  findJanAushadhiEquivalents,
   getConsultationPrice,
-  selectDoctorForConsultation
+  selectDoctorForConsultation,
+  validatePrescriptionDrugs
 } from "../index.ts";
 import type { DoctorCandidate } from "../index.ts";
 
@@ -86,5 +88,33 @@ describe("NeighbourDoc core healthcare logic", () => {
       canAccessConsultation({ role: "partner", organizationId: "org1" }, { patientUserId: "p1", doctorUserId: "d1", organizationId: "org2" }),
       false
     );
+  });
+
+  it("maps brand names to Jan Aushadhi generic equivalents with significant savings", () => {
+    const augmentinMatches = findJanAushadhiEquivalents("Augmentin");
+    assert.ok(augmentinMatches.length > 0);
+    assert.equal(augmentinMatches[0].genericName, "Amoxicillin + Potassium Clavulanate 625mg");
+    assert.equal(augmentinMatches[0].janAushadhiPriceInr, 35);
+    assert.equal(augmentinMatches[0].brandAveragePriceInr, 185);
+    assert.ok(augmentinMatches[0].savingsPercent > 75);
+
+    const doloMatches = findJanAushadhiEquivalents("Dolo");
+    assert.ok(doloMatches.length > 0);
+    assert.equal(doloMatches[0].genericName, "Paracetamol 650mg");
+  });
+
+  it("strictly rejects Schedule X / narcotic psychotropics under Telemedicine Guidelines", () => {
+    // Prohibited substance
+    const badRx = validatePrescriptionDrugs("Tab Alprazolam 0.5mg at night for sleep");
+    assert.equal(badRx.isCompliant, false);
+    assert.ok(badRx.prohibitedDrugsFound.includes("alprazolam"));
+    assert.match(badRx.warningMessage ?? "", /Schedule X/);
+
+    // Compliant prescription with savings calculation
+    const goodRx = validatePrescriptionDrugs("Augmentin 625mg 1 tab BD x 5 days\nPan-D 1 cap OD empty stomach");
+    assert.equal(goodRx.isCompliant, true);
+    assert.equal(goodRx.prohibitedDrugsFound.length, 0);
+    assert.ok(goodRx.recommendations.length >= 2);
+    assert.ok(goodRx.estimatedSavingsInr > 200); // Saves > ₹200 on these two medicines
   });
 });

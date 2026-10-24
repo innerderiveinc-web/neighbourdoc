@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Surface } from "@neighbourdoc/ui";
+import { validatePrescriptionDrugs } from "@neighbourdoc/shared";
 
 type Consultation = {
   id: string;
@@ -42,6 +43,8 @@ export default function PrescriptionPage({ params }: { params: Promise<{ id: str
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const janAushadhiAudit = prescription ? validatePrescriptionDrugs(prescription.medicines) : null;
 
   useEffect(() => {
     async function loadData() {
@@ -234,6 +237,42 @@ export default function PrescriptionPage({ params }: { params: Promise<{ id: str
                   </tbody>
                 </table>
               </div>
+
+              {/* Jan Aushadhi Generic Savings Card */}
+              {janAushadhiAudit && janAushadhiAudit.recommendations.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-[#D1E6E3] bg-[#F2F8F7] p-4 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-black text-[#0B4F48] flex items-center gap-1.5">
+                      💊 प्रधानमंत्री भारतीय जन औषधि समकक्ष (PMBJP Generic Equivalents)
+                    </span>
+                    <span className="font-black text-[#107569] bg-white px-2.5 py-0.5 rounded-full border border-[#D1E6E3] text-[11px]">
+                      अनुमानित बचत: ₹{janAushadhiAudit.estimatedSavingsInr} (~70%)
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[#4A5568] text-[11px] leading-relaxed">
+                    यह पर्चा राष्ट्रीय स्वास्थ्य नीति के तहत जन औषधि केंद्रों पर पूरी तरह मान्य है। आप नीचे दी गई जेनेरिक दवाइयां किसी भी नज़दीकी जन औषधि केंद्र से 50% से 80% कम दाम पर प्राप्त कर सकते हैं:
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    {janAushadhiAudit.recommendations.map((rec) => (
+                      <div
+                        key={rec.id}
+                        className="flex flex-wrap items-center justify-between rounded-xl bg-white p-2.5 border border-[#E2E8F0]"
+                      >
+                        <div>
+                          <p className="font-bold text-[#0F2F2E]">{rec.genericName}</p>
+                          <p className="text-[10px] text-[#64748B]">
+                            ब्रांड समकक्ष: {rec.brandExamples.slice(0, 3).join(", ")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] font-bold text-[#0B4F48]">जन औषधि: ₹{rec.janAushadhiPriceInr}</span>
+                          <span className="ml-2 text-[10px] text-[#94A3B8] line-through">ब्रांडेड: ₹{rec.brandAveragePriceInr}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

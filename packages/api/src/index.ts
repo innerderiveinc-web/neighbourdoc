@@ -6,6 +6,7 @@ import {
   detectEmergency,
   getConsultationPrice,
   selectDoctorForConsultation,
+  validatePrescriptionDrugs,
   type ConsultationPlan,
   type ConsultationStatus,
   type DoctorCandidate,
@@ -1387,6 +1388,12 @@ export function createDemoApi(persistencePath?: string) {
         if (!isAdmin && !isAssignedDoctor) {
           throw new Error("Forbidden: You are not authorized to complete this consultation.");
         }
+      }
+
+      // STATUTORY COMPLIANCE: Telemedicine Practice Guidelines (2020) Drug Scheduling Verification
+      const drugValidation = validatePrescriptionDrugs(prescriptionInput.medicines);
+      if (!drugValidation.isCompliant) {
+        throw new Error(drugValidation.warningMessage ?? "Prohibited substances detected under Telemedicine Practice Guidelines (2020).");
       }
 
       // IDEMPOTENCY: If already completed, return existing prescription and earning without duplicate payouts

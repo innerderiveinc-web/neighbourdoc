@@ -39,5 +39,5 @@
     "packages/**/*.tsx",
     "vitest.config.ts"
   ],
-  "exclude": ["apps/mobile", "node_modules"]
+  "exclude": ["apps/mobile", "node_modules", "**/node_modules", "**/.next", "dist"]
 }

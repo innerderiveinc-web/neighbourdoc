@@ -311,3 +311,308 @@ export const AddOrganizationMemberSchema = z.object({
   age: z.coerce.number().int().min(1).max(120).optional(),
   gender: z.enum(["male", "female", "other"]).optional()
 });
+
+// ---------------------------------------------------------
+// Jan Aushadhi Generic Medicine & Drug Compliance Engine
+// ---------------------------------------------------------
+
+export type TelemedicineDrugSchedule = "ListA" | "ListB" | "Prohibited";
+
+export type JanAushadhiMedicine = {
+  id: string;
+  genericName: string;
+  brandExamples: string[];
+  category: string;
+  schedule: TelemedicineDrugSchedule;
+  dosageForm: "Tablet" | "Syrup" | "Capsule" | "Drops" | "Ointment" | "Sachet";
+  janAushadhiPriceInr: number;
+  brandAveragePriceInr: number;
+  savingsPercent: number;
+  standardDosage: string;
+  safetyNote?: string;
+};
+
+export const JAN_AUSHADHI_CATALOG: JanAushadhiMedicine[] = [
+  {
+    id: "ja_pcm_650",
+    genericName: "Paracetamol 650mg",
+    brandExamples: ["Dolo 650", "Calpol 650", "Crocin 650", "P-650"],
+    category: "Antipyretic / Analgesic",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 12,
+    brandAveragePriceInr: 35,
+    savingsPercent: 66,
+    standardDosage: "1 गोली बुखार या बदन दर्द होने पर (दिन में अधिकतम 3 बार भोजन के बाद)",
+    safetyNote: "24 घंटे में 4 ग्राम (6 गोलियों) से अधिक न लें। लिवर समस्या में डॉक्टर से पूछें।"
+  },
+  {
+    id: "ja_amox_clav_625",
+    genericName: "Amoxicillin + Potassium Clavulanate 625mg",
+    brandExamples: ["Augmentin 625", "Moxikind-CV 625", "Clavam 625", "Advent 625"],
+    category: "Broad Spectrum Antibiotic",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 35,
+    brandAveragePriceInr: 185,
+    savingsPercent: 81,
+    standardDosage: "1 गोली सुबह और 1 गोली शाम भोजन के बाद (5 दिनों का पूरा कोर्स)",
+    safetyNote: "एंटीबायोटिक का कोर्स बीच में न छोड़ें। पेनिसिलिन एलर्जी होने पर न लें।"
+  },
+  {
+    id: "ja_panto_40",
+    genericName: "Pantoprazole 40mg",
+    brandExamples: ["Pan 40", "Pantocid 40", "Pantodac 40", "Protium 40"],
+    category: "Antacid / Proton Pump Inhibitor",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 15,
+    brandAveragePriceInr: 95,
+    savingsPercent: 84,
+    standardDosage: "1 गोली सुबह खाली पेट (नाश्ते से 30 मिनट पहले)",
+    safetyNote: "लगातार एसिडिटी रहने पर खान-पान में तला-भुना कम करें।"
+  },
+  {
+    id: "ja_panto_dom_d",
+    genericName: "Pantoprazole 40mg + Domperidone 30mg (SR)",
+    brandExamples: ["Pan-D", "Pantocid-D", "Pantodac-DSR", "Dompan"],
+    category: "Gastro-resistant Antacid & Antiemetic",
+    schedule: "ListA",
+    dosageForm: "Capsule",
+    janAushadhiPriceInr: 22,
+    brandAveragePriceInr: 160,
+    savingsPercent: 86,
+    standardDosage: "1 कैप्सूल सुबह खाली पेट पानी के साथ",
+    safetyNote: "एसिडिटी के साथ उल्टी या मतली महसूस होने पर उपयोगी।"
+  },
+  {
+    id: "ja_azithro_500",
+    genericName: "Azithromycin 500mg",
+    brandExamples: ["Azithral 500", "Azee 500", "Zithrox 500", "Azimax 500"],
+    category: "Macrolide Antibiotic",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 42,
+    brandAveragePriceInr: 130,
+    savingsPercent: 68,
+    standardDosage: "1 गोली दिन में एक बार निश्चित समय पर (3 से 5 दिन)",
+    safetyNote: "गले में गंभीर संक्रमण व श्वसन नली के बैक्टीरिया हेतु।"
+  },
+  {
+    id: "ja_cefixime_200",
+    genericName: "Cefixime 200mg",
+    brandExamples: ["Zifi 200", "Taxim-O 200", "Mahacef 200", "Cefolac 200"],
+    category: "Cephalosporin Antibiotic",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 45,
+    brandAveragePriceInr: 165,
+    savingsPercent: 73,
+    standardDosage: "1 गोली सुबह व 1 गोली शाम भोजनोपरांत",
+    safetyNote: "टाइफाइड, मूत्र संक्रमण (UTI) या श्वसन संक्रमण में प्रयुक्त।"
+  },
+  {
+    id: "ja_cetirizine_10",
+    genericName: "Cetirizine Hydrochloride 10mg",
+    brandExamples: ["Cetcip 10", "Alerid 10", "Zyrtec", "Okacet"],
+    category: "Antihistamine / Anti-allergy",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 6,
+    brandAveragePriceInr: 25,
+    savingsPercent: 76,
+    standardDosage: "1 गोली रात को सोते समय आवश्यकतानुसार",
+    safetyNote: "हल्की नींद आ सकती है; लेने के बाद वाहन न चलाएं।"
+  },
+  {
+    id: "ja_levocet_mont_lc",
+    genericName: "Levocetirizine 5mg + Montelukast 10mg",
+    brandExamples: ["Montair-LC", "Montek-LC", "Telekast-L", "Levocet-M"],
+    category: "Anti-allergic & Bronchodilator Support",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 28,
+    brandAveragePriceInr: 180,
+    savingsPercent: 84,
+    standardDosage: "1 गोली रात को भोजन के बाद (5-7 दिन)",
+    safetyNote: "एलर्जी जनित सर्दी, जुकाम और दमा/सांस की एलर्जी हेतु।"
+  },
+  {
+    id: "ja_metformin_500",
+    genericName: "Metformin Hydrochloride 500mg (SR)",
+    brandExamples: ["Glycomet 500", "Glyciphage 500", "Obimet 500", "Cetapin 500"],
+    category: "Oral Antidiabetic (Chronic Maintenance)",
+    schedule: "ListB",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 9,
+    brandAveragePriceInr: 32,
+    savingsPercent: 72,
+    standardDosage: "1 गोली भोजन के साथ या तुरंत बाद (नियमित जांच सहित)",
+    safetyNote: "केवल पहले से चल रहे शुगर के मरीज हेतु टेली-फॉलोअप में मान्य।"
+  },
+  {
+    id: "ja_telmisartan_40",
+    genericName: "Telmisartan 40mg",
+    brandExamples: ["Telma 40", "Telmikind 40", "Telpres 40", "Cresar 40"],
+    category: "Antihypertensive (Blood Pressure)",
+    schedule: "ListB",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 14,
+    brandAveragePriceInr: 85,
+    savingsPercent: 84,
+    standardDosage: "1 गोली सुबह नाश्ते के बाद नियमित समय पर",
+    safetyNote: "ब्लड प्रेशर की दवा को बिना डॉक्टर के कभी अचानक बंद न करें।"
+  },
+  {
+    id: "ja_amlodipine_5",
+    genericName: "Amlodipine 5mg",
+    brandExamples: ["Amlong 5", "Stamlo 5", "Amlopin 5"],
+    category: "Antihypertensive / Calcium Channel Blocker",
+    schedule: "ListB",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 6,
+    brandAveragePriceInr: 38,
+    savingsPercent: 84,
+    standardDosage: "1 गोली दिन में एक बार",
+    safetyNote: "पैरों में सूजन दिखे तो चिकित्सक को सूचित करें।"
+  },
+  {
+    id: "ja_ors_sachet",
+    genericName: "Oral Rehydration Salts (WHO Formula)",
+    brandExamples: ["Electral", "Enerzal", "Prolyte ORS", "Walyte"],
+    category: "Electrolyte Rehydrant",
+    schedule: "ListA",
+    dosageForm: "Sachet",
+    janAushadhiPriceInr: 10,
+    brandAveragePriceInr: 24,
+    savingsPercent: 58,
+    standardDosage: "1 पैकेट को 1 लीटर उबले व ठंडे पानी में घोलकर 24 घंटे में पिएं",
+    safetyNote: "दस्त, उल्टी या डिहाइड्रेशन में सबसे जरूरी जीवनरक्षक घोल।"
+  },
+  {
+    id: "ja_combiflam",
+    genericName: "Ibuprofen 400mg + Paracetamol 325mg",
+    brandExamples: ["Combiflam", "Flexon", "Brufen Plus"],
+    category: "Pain Reliever & Anti-inflammatory",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 10,
+    brandAveragePriceInr: 42,
+    savingsPercent: 76,
+    standardDosage: "1 गोली भोजन के बाद दर्द होने पर",
+    safetyNote: "खाली पेट कभी न लें। पेट में अल्सर या एसिडिटी में सावधानी बरतें।"
+  },
+  {
+    id: "ja_oflox_oz",
+    genericName: "Ofloxacin 200mg + Ornidazole 500mg",
+    brandExamples: ["O2", "Zenflox-OZ", "Oflomac-OZ", "Ornof"],
+    category: "Gastrointestinal Antimicrobial",
+    schedule: "ListA",
+    dosageForm: "Tablet",
+    janAushadhiPriceInr: 32,
+    brandAveragePriceInr: 135,
+    savingsPercent: 76,
+    standardDosage: "1 गोली सुबह और शाम भोजन के बाद (3 से 5 दिन)",
+    safetyNote: "दस्त, पेट मरोड़ व पेचिश संक्रमण हेतु प्रयुक्त।"
+  },
+  {
+    id: "ja_multivitamin_zinc",
+    genericName: "Multivitamin with B-Complex & Zinc",
+    brandExamples: ["Becosules", "Zincovit", "A to Z NS", "Supradyn"],
+    category: "Nutritional Supplement",
+    schedule: "ListA",
+    dosageForm: "Capsule",
+    janAushadhiPriceInr: 18,
+    brandAveragePriceInr: 115,
+    savingsPercent: 84,
+    standardDosage: "1 कैप्सूल प्रतिदिन दोपहर के भोजन के बाद",
+    safetyNote: "कमजोरी, मुंह के छाले व बीमारी के बाद रिकवरी में सहायक।"
+  }
+];
+
+export const PROHIBITED_TELEMEDICINE_DRUGS = [
+  "alprazolam",
+  "clonazepam",
+  "diazepam",
+  "lorazepam",
+  "zolpidem",
+  "chlordiazepoxide",
+  "nitrazepam",
+  "morphine",
+  "codeine",
+  "fentanyl",
+  "tramadol",
+  "ketamine",
+  "buprenorphine",
+  "methadone",
+  "pentazocine",
+  "midazolam",
+  "phenobarbitone",
+  "methylphenidate",
+  "sleeping pill",
+  "narcotic"
+];
+
+/**
+ * Find matching Jan Aushadhi generic equivalents based on medicine query or brand name
+ */
+export function findJanAushadhiEquivalents(query: string): JanAushadhiMedicine[] {
+  const q = query.trim().toLowerCase();
+  if (!q || q.length < 2) return [];
+
+  return JAN_AUSHADHI_CATALOG.filter((med) => {
+    if (med.genericName.toLowerCase().includes(q)) return true;
+    if (med.category.toLowerCase().includes(q)) return true;
+    return med.brandExamples.some((b) => b.toLowerCase().includes(q) || q.includes(b.toLowerCase()));
+  });
+}
+
+/**
+ * Validate prescription safety and statutory compliance under Telemedicine Practice Guidelines (2020)
+ */
+export function validatePrescriptionDrugs(medicinesText: string): {
+  isCompliant: boolean;
+  prohibitedDrugsFound: string[];
+  recommendations: JanAushadhiMedicine[];
+  estimatedSavingsInr: number;
+  warningMessage?: string;
+} {
+  const lower = medicinesText.toLowerCase();
+
+  // 1. Scan for Schedule X / Prohibited substances
+  const prohibitedFound = PROHIBITED_TELEMEDICINE_DRUGS.filter((prohibited) =>
+    lower.includes(prohibited.toLowerCase())
+  );
+
+  if (prohibitedFound.length > 0) {
+    return {
+      isCompliant: false,
+      prohibitedDrugsFound: prohibitedFound,
+      recommendations: [],
+      estimatedSavingsInr: 0,
+      warningMessage: `सांविधिक चेतावनी (Statutory Rejection): '${prohibitedFound.join(", ")}' Schedule X / नशीली/नींद की दवाओं की श्रेणी में आती है। टेलीमेडिसिन दिशा-निर्देश 2020 के अनुसार ऑनलाइन पर्चे पर यह दवा लिखना कानूनी रूप से पूर्णतः प्रतिबंधित है। मरीज़ को प्रत्यक्ष क्लिनिक में जांच हेतु निर्देशित करें।`
+    };
+  }
+
+  // 2. Identify generic Jan Aushadhi alternatives mentioned in prescription
+  const matchedMeds: JanAushadhiMedicine[] = [];
+  let totalSavings = 0;
+
+  for (const item of JAN_AUSHADHI_CATALOG) {
+    const isGenericPresent = lower.includes(item.genericName.toLowerCase().split(" ")[0]);
+    const isBrandPresent = item.brandExamples.some((brand) => lower.includes(brand.toLowerCase()));
+
+    if (isGenericPresent || isBrandPresent) {
+      matchedMeds.push(item);
+      totalSavings += Math.max(0, item.brandAveragePriceInr - item.janAushadhiPriceInr);
+    }
+  }
+
+  return {
+    isCompliant: true,
+    prohibitedDrugsFound: [],
+    recommendations: matchedMeds,
+    estimatedSavingsInr: totalSavings
+  };
+}
+

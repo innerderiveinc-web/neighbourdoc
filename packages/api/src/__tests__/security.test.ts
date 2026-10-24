@@ -470,4 +470,45 @@ test("SECURITY & AUDIT: logs prescription reading and access events", () => {
   assert.equal(accessLog.actorId, patientActor.sub);
 });
 
+test("STATUTORY COMPLIANCE: blocks prohibited Schedule X medications in tele-prescriptions", () => {
+  const api = createDemoApi(":memory:");
+
+  const booking = api.createConsultation({
+    name: "Rajesh Kumar",
+    phone: "+919876543201",
+    age: 38,
+    gender: "male",
+    city: "Lucknow",
+    language: "Hindi",
+    symptoms: "Insomnia and anxiety",
+    plan: "basic",
+    consent: true
+  });
+
+  assert.equal(booking.ok, true);
+  assert.ok(booking.consultation);
+
+  const adminActor: AuthTokenPayload = {
+    sub: "user_admin_1",
+    phone: "+919999999999",
+    role: "admin"
+  };
+
+  // Attempt to prescribe Schedule X drug (Clonazepam)
+  assert.throws(
+    () => {
+      api.completeConsultation(
+        booking.consultation.id,
+        {
+          medicines: "Tab Clonazepam 0.5mg at bedtime",
+          advice: "Take for 10 days"
+        },
+        adminActor
+      );
+    },
+    /Schedule X/
+  );
+});
+
+
 
