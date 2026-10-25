@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { detectEmergency, getConsultationPrice, type ConsultationPlan, type Language } from "@neighbourdoc/shared";
+import { Linking, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { screenEmergencySymptoms, getConsultationPrice, type ConsultationPlan, type Language } from "@neighbourdoc/shared";
 
 export function BookScreen({
   initialName,
@@ -19,12 +19,22 @@ export function BookScreen({
   const [city, setCity] = useState("Lucknow");
   const [symptoms, setSymptoms] = useState("");
   const [plan, setPlan] = useState<ConsultationPlan>("basic");
-  const [consent, setConsent] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const emergency = useMemo(() => detectEmergency(symptoms), [symptoms]);
+  const emergency = useMemo(
+    () => (symptoms.trim() ? screenEmergencySymptoms(symptoms) : { blocked: false, matchedTerms: [], message: "" }),
+    [symptoms]
+  );
   const currentPrice = getConsultationPrice(plan);
+
+  const quickChips = [
+    { label: "+ बुखार", text: "2 दिन से तेज़ बुखार है" },
+    { label: "+ खांसी-जुकाम", text: "सूखी खांसी व गले में दर्द" },
+    { label: "+ पेट दर्द", text: "पेट में मरोड़ व दस्त" },
+    { label: "+ सिरदर्द", text: "सिरदर्द व चक्कर आ रहे हैं" }
+  ];
 
   async function handleBook() {
     if (!name.trim() || !phone.trim() || !symptoms.trim()) {
@@ -130,10 +140,36 @@ export function BookScreen({
           onChangeText={setSymptoms}
         />
 
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6, marginBottom: 8 }}>
+          {quickChips.map((c) => (
+            <TouchableOpacity
+              key={c.label}
+              onPress={() => setSymptoms((prev) => (prev ? `${prev}, ${c.text}` : c.text))}
+              style={{ backgroundColor: "#F1F5F9", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: "#CBD5E1" }}
+            >
+              <Text style={{ fontSize: 11, color: "#334155", fontWeight: "600" }}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {emergency.blocked && (
           <View style={styles.emergencyBox}>
-            <Text style={styles.emergencyTitle}>⚠️ Emergency Warning</Text>
+            <Text style={styles.emergencyTitle}>🚨 आपातकालीन चेतावनी (Emergency Warning)</Text>
             <Text style={styles.emergencyText}>{emergency.message}</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("tel:112")}
+                style={{ backgroundColor: "#DC2626", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
+                <Text style={{ color: "#FFFFFF", fontWeight: "800", fontSize: 12 }}>📞 112 डायल करें</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => Linking.openURL("tel:108")}
+                style={{ backgroundColor: "#991B1B", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
+                <Text style={{ color: "#FFFFFF", fontWeight: "800", fontSize: 12 }}>🚑 108 डायल करें</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 

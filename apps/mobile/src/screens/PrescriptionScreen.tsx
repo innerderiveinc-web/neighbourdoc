@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { findJanAushadhiEquivalents } from "@neighbourdoc/shared";
 import { apiRequest } from "../apiClient";
 
 type Prescription = {
@@ -72,6 +73,25 @@ export function PrescriptionScreen({
               <Text style={styles.medsText}>{rx.medicines}</Text>
             </View>
           </View>
+
+          {findJanAushadhiEquivalents(rx.medicines).foundEquivalents.length > 0 && (
+            <View style={{ marginTop: 12, backgroundColor: "#ECFDF5", borderRadius: 16, padding: 12, borderWidth: 1, borderColor: "#A7F3D0" }}>
+              <Text style={{ fontSize: 12, fontWeight: "800", color: "#065F46" }}>
+                💊 जन औषधि केंद्र जेनेरिक विकल्प (अनुमानित बचत ~{findJanAushadhiEquivalents(rx.medicines).totalEstimatedSavingsPercent}%)
+              </Text>
+              <Text style={{ fontSize: 11, color: "#047857", marginTop: 2, marginBottom: 8 }}>
+                ये सस्ती दवाइयां किसी भी सरकारी जन औषधि केंद्र (PMBJP) पर उपलब्ध हैं:
+              </Text>
+              {findJanAushadhiEquivalents(rx.medicines).foundEquivalents.map((eq) => (
+                <View key={eq.genericMolecule} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#064E3B" }}>• {eq.genericMolecule}</Text>
+                  <Text style={{ fontSize: 11, color: "#047857" }}>
+                    ₹{eq.genericPriceInr} (ब्रांडेड: ₹{eq.brandedAvgPriceInr})
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>डॉक्टर की सलाह व परहेज</Text>

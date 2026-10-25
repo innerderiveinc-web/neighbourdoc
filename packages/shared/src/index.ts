@@ -1,5 +1,41 @@
 import { z } from "zod";
 
+export const EnvSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    PORT: z.string().optional().default("3000"),
+    JWT_SECRET: z.string().min(1, "JWT_SECRET is required").default("neighbourdoc-super-secret-production-key-32chars"),
+    DATABASE_URL: z.string().optional(),
+    RAZORPAY_KEY_ID: z.string().optional(),
+    RAZORPAY_KEY_SECRET: z.string().optional(),
+    RAZORPAY_WEBHOOK_SECRET: z.string().optional()
+  })
+  .superRefine((data, ctx) => {
+    if (data.NODE_ENV === "production") {
+      if (data.JWT_SECRET.length < 32 || data.JWT_SECRET.includes("super-secret")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["JWT_SECRET"],
+          message: "In production, JWT_SECRET must be at least 32 characters long and cannot use default placeholders."
+        });
+      }
+    }
+  });
+
+export type ValidatedEnv = z.infer<typeof EnvSchema>;
+
+export function getValidatedEnv(customEnv?: Record<string, string | undefined>): ValidatedEnv {
+  const envSource = customEnv ?? process.env;
+  const result = EnvSchema.safeParse(envSource);
+
+  if (!result.success) {
+    const errorDetails = result.error.errors.map((e) => `• [${e.path.join(".")}]: ${e.message}`).join("\n");
+    throw new Error(`[CRITICAL] Environment Configuration Failure:\n${errorDetails}`);
+  }
+
+  return result.data;
+}
+
 export type UserRole = "patient" | "doctor" | "admin" | "superadmin" | "partner";
 export type Language = "Hindi" | "English" | "Hinglish" | "Marathi" | "Bengali" | "Tamil";
 export type ConsultationPlan = "basic" | "priority" | "family_monthly" | "organization_custom";

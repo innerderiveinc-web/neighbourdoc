@@ -1,0 +1,8 @@
+node_modules/
+.next/
+dist/
+build/
+.expo/
+*.zip
+package-lock.json
+*.log

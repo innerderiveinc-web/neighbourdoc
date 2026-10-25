@@ -5,6 +5,7 @@ import {
   detectEmergency,
   findJanAushadhiEquivalents,
   getConsultationPrice,
+  getValidatedEnv,
   selectDoctorForConsultation,
   validatePrescriptionDrugs
 } from "../index.ts";
@@ -116,5 +117,31 @@ describe("NeighbourDoc core healthcare logic", () => {
     assert.equal(goodRx.prohibitedDrugsFound.length, 0);
     assert.ok(goodRx.recommendations.length >= 2);
     assert.ok(goodRx.estimatedSavingsInr > 200); // Saves > ₹200 on these two medicines
+  });
+
+  it("validates environment variables and enforces production security", () => {
+    // Development default env passes
+    const devEnv = getValidatedEnv({
+      NODE_ENV: "development",
+      JWT_SECRET: "short-dev-key"
+    });
+    assert.equal(devEnv.NODE_ENV, "development");
+    assert.equal(devEnv.JWT_SECRET, "short-dev-key");
+
+    // Production with weak key throws validation error
+    assert.throws(() => {
+      getValidatedEnv({
+        NODE_ENV: "production",
+        JWT_SECRET: "short-key"
+      });
+    }, /at least 32 characters long/);
+
+    // Production with strong key passes
+    const prodEnv = getValidatedEnv({
+      NODE_ENV: "production",
+      JWT_SECRET: "super-secure-production-jwt-secret-key-at-least-32-chars"
+    });
+    assert.equal(prodEnv.NODE_ENV, "production");
+    assert.equal(prodEnv.JWT_SECRET, "super-secure-production-jwt-secret-key-at-least-32-chars");
   });
 });
