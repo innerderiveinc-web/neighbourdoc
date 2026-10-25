@@ -5,22 +5,35 @@ NeighbourDoc is a low-cost, WhatsApp-first, hyperlocal healthcare consultation p
 
 Positioning: **Doctor consultation in 15 minutes — starting at ₹49.**
 
-## Monorepo Structure
+## Monorepo Structure & Clean Architecture (DDD)
 
 ```text
 neighbourdoc/
   apps/
-    web/      Patient responsive PWA
-    admin/    SaaS admin panel
-    doctor/   Doctor dashboard
-    mobile/   Expo Android/iOS app
+    web/          Patient responsive PWA (Micro-components: Voice Recorder, Emergency Banner, UPI Modal)
+    admin/        Operations SaaS dashboard (Micro-components: KpiGrid, SLA Watchdog, Performance Table, Settings)
+    doctor/       Clinical cockpit (Micro-components: Patient Queue, Jan Aushadhi Rx Copilot, Active Call Modal)
+    mobile/       Expo Android/iOS application
   packages/
-    api/       Backend service logic and provider abstractions
-    database/  Prisma schema and seed data
-    shared/    Types, pricing, emergency detection, assignment, RBAC
-    ui/        Shared React UI primitives
-  docs/
+    api/          Domain-Driven Backend Architecture:
+      src/types/        Entity models, DTOs, and state contracts
+      src/services/     Auth, Consultation, Payment, Notification, Watchdog, Follow-up
+      src/store/        State persistence engine, defaults, and seeding
+      src/index.ts      Backward-compatible enterprise facade
+    database/     Prisma ORM schema (PostgreSQL) and seed scripts
+    shared/       Domain logic: Emergency red-flags, Jan Aushadhi catalog, Schedule X guards, Env validation
+    ui/           Shared design system: MetricCard, Surface, PrimaryButton, StatusBadge, BrandFooter
+  ci/
+    ci.yml        Automated GitHub Actions CI/CD Pipeline
+  docs/           Production architecture, API specs, deployment guides
 ```
+
+## 🤖 4 Autonomous Agentic Pipelines
+
+1. **Autonomous 15-Minute SLA Watchdog Agent**: Scans pending calls every 60s. At T+8m, auto-reassigns to backup doctors. At T+15m, executes full refund, notifies patient with apology, and logs audit record.
+2. **Clinical Safety & Jan Aushadhi Generic Copilot**: Real-time statutory Schedule X drug guard rejecting prohibited narcotics under Telemedicine Guidelines (2020), while automatically mapping brand-name medicines to PMBJP Jan Aushadhi generic equivalents (60%-85% patient savings).
+3. **Day-3 WhatsApp Follow-Up & Recovery Agent**: Scans completed consultations at T+72h, dispatches multi-lingual health check-ins, and auto-escalates worsening symptoms to free priority clinician reviews.
+4. **Vernacular Voice Triage & Emergency Red Flag Guardian**: Multilingual Indian voice intake with zero-latency clinical triage intercepting emergency terms (chest pain, stroke, paralysis, snake bites, poison) and rerouting patients to 112/108 with first-aid guidance.
 
 ## Quick Start
 

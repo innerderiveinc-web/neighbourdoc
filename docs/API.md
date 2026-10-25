@@ -73,7 +73,7 @@ Completes consultation, creates doctor earning, sends prescription notification.
 - `POST /api/prescriptions`
 - `GET /api/prescriptions/:consultationId`
 
-Prescription access must be limited to the patient, assigned doctor, admin/superadmin, or owning partner organization.
+Prescription access must be limited to the patient, assigned doctor, admin/superadmin, or owning partner organization. Prescriptions are validated against Schedule X prohibitions and mapped to Jan Aushadhi generic alternatives.
 
 ## Payments
 
@@ -82,6 +82,21 @@ Prescription access must be limited to the patient, assigned doctor, admin/super
 - `POST /api/payments/webhook`
 
 Razorpay webhook body must be verified with HMAC SHA-256 before changing payment or consultation state.
+
+## Telephony & Privacy
+
+### POST `/api/telephony/call-bridge`
+Initiates a PSTN click-to-call bridge between the clinician and patient while masking the patient's phone number (`+91 97XXXXXX01`) for complete DPDP privacy compliance.
+
+## Support & Grievance
+
+### POST `/api/contact`
+Creates a persistent contact and grievance support ticket with audit logging.
+
+## DPDP Compliance & Data Privacy
+
+### DELETE `/api/patients/:id/erase`
+Executes patient data erasure and anonymization under India's Digital Personal Data Protection (DPDP) Act, sanitizing identifiers while retaining anonymized clinical records for audit requirements.
 
 ## Feedback
 
@@ -93,12 +108,15 @@ Razorpay webhook body must be verified with HMAC SHA-256 before changing payment
 - `GET /api/organizations/:id`
 - `POST /api/organizations/:id/members`
 
-## Admin
+## Admin & Operations
 
 - `GET /api/admin/dashboard`
 - `GET /api/admin/reports`
 - `GET /api/admin/doctor-performance`
 - `GET /api/admin/revenue`
+- `GET /api/admin/settings` (Retrieves dynamic system fees, payout shares, SLA limits, and maintenance mode)
+- `PUT /api/admin/settings` (Updates runtime operational settings with administrative audit trail)
+- `POST /api/admin/sla-watchdog` (Executes the autonomous SLA Watchdog agent to auto-escalate at T+8m and auto-refund at T+15m)
 
 ## Notifications
 
@@ -114,4 +132,7 @@ WhatsApp templates must support Hindi and English:
 4. Doctor will call in 15 minutes
 5. Prescription ready
 6. Feedback request
-7. Follow-up reminder
+7. Follow-up reminder (Day-3 recovery check-in)
+8. SLA breach apology (15-minute guarantee refund)
+9. Doctor escalation alert
+10. Follow-up escalation alert (free priority consultation review)
