@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  BRAND_CONSTANTS,
   canAccessConsultation,
   detectEmergency,
   findJanAushadhiEquivalents,
@@ -143,5 +144,12 @@ describe("NeighbourDoc core healthcare logic", () => {
     });
     assert.equal(prodEnv.NODE_ENV, "production");
     assert.equal(prodEnv.JWT_SECRET, "super-secure-production-jwt-secret-key-at-least-32-chars");
+  });
+
+  it("exposes unified brand constants and corporate attribution", () => {
+    assert.equal(BRAND_CONSTANTS.BRAND_NAME, "NeighbourDoc");
+    assert.equal(BRAND_CONSTANTS.CORPORATE_ENTITY, "Qsura India Pvt. Ltd.");
+    assert.equal(BRAND_CONSTANTS.SLA_GUARANTEE_MINUTES, 15);
+    assert.equal(BRAND_CONSTANTS.EMERGENCY_HELPLINES.nationalEmergency, "112");
   });
 });

@@ -77,3 +77,44 @@ export function PrimaryButton({
   );
 }
 
+export function StatusBadge({
+  status,
+  label,
+  pulse = false
+}: {
+  status: "queued" | "assigned" | "in_consultation" | "completed" | "refunded" | "cancelled" | "paid" | "pending" | string;
+  label?: string;
+  pulse?: boolean;
+}) {
+  const styles: Record<string, string> = {
+    completed: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    in_consultation: "bg-blue-100 text-blue-800 border-blue-200",
+    assigned: "bg-teal-100 text-teal-800 border-teal-200",
+    queued: "bg-amber-100 text-amber-800 border-amber-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    refunded: "bg-rose-100 text-rose-800 border-rose-200",
+    cancelled: "bg-slate-100 text-slate-700 border-slate-200"
+  };
+
+  const currentStyle = styles[status] ?? "bg-slate-100 text-slate-700 border-slate-200";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize ${currentStyle}`}
+    >
+      {pulse && <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />}
+      {label ?? status.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+export function BrandFooter({ className = "" }: { className?: string }) {
+  return (
+    <footer className={`mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8] ${className}`}>
+      NeighbourDoc Healthcare Platform · Developed &amp; Maintained by <strong>Qsura India Pvt. Ltd.</strong>
+    </footer>
+  );
+}
+
+

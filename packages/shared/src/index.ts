@@ -652,3 +652,24 @@ export function validatePrescriptionDrugs(medicinesText: string): {
   };
 }
 
+// ---------------------------------------------------------
+// Brand & Statutory Enterprise Constants
+// ---------------------------------------------------------
+export const BRAND_CONSTANTS = {
+  BRAND_NAME: "NeighbourDoc",
+  BRAND_TAGLINE: "हर परिवार के लिए विश्वसनीय डॉक्टर, 15 मिनट में",
+  CORPORATE_ENTITY: "Qsura India Pvt. Ltd.",
+  SLA_GUARANTEE_MINUTES: 15,
+  SUPPORT_PHONE: "+918000000000",
+  SUPPORT_EMAIL: "support@neighbourdoc.in",
+  EMERGENCY_HELPLINES: {
+    nationalEmergency: "112",
+    ambulance: "108",
+    poisonControl: "1800-116-117",
+    womenHelpline: "1090"
+  }
+} as const;
+
+export type BrandConstants = typeof BRAND_CONSTANTS;
+
+
