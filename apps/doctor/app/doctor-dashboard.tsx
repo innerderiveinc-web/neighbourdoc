@@ -2,38 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MetricCard, PrimaryButton, Surface } from "@neighbourdoc/ui";
-import {
-  findJanAushadhiEquivalents,
-  validatePrescriptionDrugs,
-  JAN_AUSHADHI_CATALOG,
-  type JanAushadhiMedicine
-} from "@neighbourdoc/shared";
-
-type Doctor = {
-  id: string;
-  name: string;
-  phone: string;
-  qualification?: string;
-  specialization?: string;
-  registrationNumber?: string;
-  availabilityStatus: "online" | "offline" | "busy";
-  earnedToday: number;
-  callsToday: number;
-};
-
-type Consultation = {
-  id: string;
-  patientId: string;
-  doctorId: string | null;
-  symptoms: string;
-  urgencyLevel: string;
-  status: string;
-  paymentStatus: string;
-  callbackDeadline: string | null;
-  createdAt: string;
-  plan?: string;
-  amount?: number;
-};
+import { DoctorHeader, type DoctorProfile } from "../components/DoctorHeader";
+import { PatientQueueList, type ConsultationItem } from "../components/PatientQueueList";
+import { JanAushadhiRxCopilot } from "../components/JanAushadhiRxCopilot";
+import { ActiveCallModal } from "../components/ActiveCallModal";
+import type { JanAushadhiMedicine } from "@neighbourdoc/shared";
 
 export function DoctorDashboardClient() {
   // Authentication State
@@ -44,30 +17,17 @@ export function DoctorDashboardClient() {
   const [authError, setAuthError] = useState("");
 
   // Dashboard Data State
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
+  const [consultations, setConsultations] = useState<ConsultationItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [medicines, setMedicines] = useState("Paracetamol 500mg (1-0-1 खाने के बाद) x 3 दिन\nCetirizine 10mg (0-0-1 रात को) x 3 दिन");
-  const [advice, setAdvice] = useState("पर्याप्त मात्रा में गुनगुना पानी पिएं और आराम करें। यदि 48 घंटे में बुखार न उतरे तो नज़दीकी क्लिनिक में दिखाएं।");
+  const [medicines, setMedicines] = useState(
+    "Paracetamol 500mg (1-0-1 खाने के बाद) x 3 दिन\nCetirizine 10mg (0-0-1 रात को) x 3 दिन"
+  );
+  const [advice, setAdvice] = useState(
+    "पर्याप्त मात्रा में गुनगुना पानी पिएं और आराम करें। यदि 48 घंटे में बुखार न उतरे तो नज़दीकी क्लिनिक में दिखाएं।"
+  );
   const [notice, setNotice] = useState("तैयार हैं।");
   const [medSearch, setMedSearch] = useState("");
-
-  // Safety & Jan Aushadhi Compliance Copilot
-  const drugSafetyAudit = useMemo(() => {
-    return validatePrescriptionDrugs(medicines);
-  }, [medicines]);
-
-  const janAushadhiSuggestions = useMemo(() => {
-    if (!medSearch.trim()) return [];
-    return findJanAushadhiEquivalents(medSearch);
-  }, [medSearch]);
-
-  const handleAppendJanAushadhi = (med: JanAushadhiMedicine) => {
-    const formatted = `${med.genericName} (${med.standardDosage})`;
-    setMedicines((prev) => (prev ? `${prev.trim()}\n${formatted}` : formatted));
-    setMedSearch("");
-    setNotice(`✓ जन औषधि जेनेरिक '${med.genericName}' पर्चे में जोड़ा गया (बचत: ~${med.savingsPercent}%)`);
-  };
 
   // Active Call Cockpit Modal State
   const [activeCallModal, setActiveCallModal] = useState(false);
@@ -80,11 +40,13 @@ export function DoctorDashboardClient() {
   }, [doctors, sessionUser]);
 
   const queue = useMemo(
-    () => consultations.filter(
-      (item) => item.paymentStatus === "paid" &&
-        item.status !== "completed" &&
-        (!currentDoctor || item.doctorId === currentDoctor.id || item.status === "queued")
-    ),
+    () =>
+      consultations.filter(
+        (item) =>
+          item.paymentStatus === "paid" &&
+          item.status !== "completed" &&
+          (!currentDoctor || item.doctorId === currentDoctor.id || item.status === "queued")
+      ),
     [consultations, currentDoctor]
   );
 
@@ -101,98 +63,102 @@ export function DoctorDashboardClient() {
   }, [activeCallModal, callStatus]);
 
   function getDoctorToken() {
-    if (typeof window === "undefined") return null;
     return localStorage.getItem("neighbourdoc_doctor_token") || localStorage.getItem("neighbordoc_doctor_token");
   }
 
   async function refresh() {
+    const token = getDoctorToken();
     try {
-      const token = getDoctorToken();
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const [doctorResponse, consultationsResponse] = await Promise.all([
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const [doctorsResponse, consultationsResponse] = await Promise.all([
         fetch("/api/doctors", { headers }),
         fetch("/api/consultations", { headers })
       ]);
-      if (doctorResponse.ok) setDoctors(await doctorResponse.json());
+      if (doctorsResponse.ok) setDoctors(await doctorsResponse.json());
       if (consultationsResponse.ok) setConsultations(await consultationsResponse.json());
-      setNotice("मरीज़ों की कतार अपडेट हो गई है।");
+      setNotice(`कतार सिंक: ${new Date().toLocaleTimeString("hi-IN")}`);
     } catch {
-      setNotice("सर्वर से संपर्क नहीं हो पाया।");
+      setNotice("डेटा सिंक त्रुटि।");
     }
   }
 
   useEffect(() => {
-    const saved =
-      localStorage.getItem("neighbourdoc_doctor_session") ||
-      localStorage.getItem("neighbordoc_doctor_session");
-    if (saved) {
+    const token = getDoctorToken();
+    const storedUser = localStorage.getItem("neighbourdoc_doctor_user");
+    if (token && storedUser) {
       try {
-        setSessionUser(JSON.parse(saved));
-      } catch {}
+        setSessionUser(JSON.parse(storedUser));
+        refresh();
+        const timer = setInterval(refresh, 8000);
+        return () => clearInterval(timer);
+      } catch {
+        localStorage.removeItem("neighbourdoc_doctor_user");
+      }
     }
-    void refresh();
-
-    const interval = setInterval(() => {
-      void refresh();
-    }, 8000);
-
-    return () => clearInterval(interval);
   }, []);
 
   async function handleSendOtp() {
     setAuthError("");
-    const res = await fetch("/api/auth/send-otp", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phone: loginPhone, role: "doctor" })
-    });
-    const data = await res.json();
-    if (data.ok) {
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: loginPhone, role: "doctor" })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error ?? "OTP भेजने में विफलता।");
+        return;
+      }
       setOtpSent(true);
-      setNotice("OTP आपके नंबर " + loginPhone + " पर भेजा गया (डेमो OTP: 123456)");
-    } else {
-      setAuthError(data.error ?? "OTP भेजने में असमर्थ।");
+    } catch {
+      setAuthError("सर्वर से कनेक्ट करने में त्रुटि।");
     }
   }
 
-  async function handleVerifyOtp(phone = loginPhone, code = loginOtp) {
+  async function handleVerifyOtp(overridePhone?: string, overrideCode?: string) {
     setAuthError("");
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phone, code, role: "doctor" })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      const matchedDoctor = doctors.find((d) => d.phone === phone);
-      const user = { name: matchedDoctor?.name ?? "डॉ. प्रिया शर्मा", phone };
-      setSessionUser(user);
-      if (data.sessionToken) {
-        localStorage.setItem("neighbourdoc_doctor_token", data.sessionToken);
-        localStorage.setItem("neighbordoc_doctor_token", data.sessionToken);
+    const phone = overridePhone ?? loginPhone;
+    const code = overrideCode ?? loginOtp;
+
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, code })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error ?? "OTP सत्यापन असफल रहा।");
+        return;
       }
-      localStorage.setItem("neighbourdoc_doctor_session", JSON.stringify(user));
-      localStorage.setItem("neighbordoc_doctor_session", JSON.stringify(user));
-      setNotice(`नमस्ते, ${user.name}`);
-    } else {
-      setAuthError(data.error ?? "अमान्य OTP कोड।");
+      if (data.role !== "doctor") {
+        setAuthError("अनाधिकृत प्रवेश: यह पोर्टल केवल सत्यापित चिकित्सकों के लिए है।");
+        return;
+      }
+
+      localStorage.setItem("neighbourdoc_doctor_token", data.sessionToken);
+      const userObj = { name: data.name ?? "डॉ. प्रिया शर्मा", phone: data.phone };
+      localStorage.setItem("neighbourdoc_doctor_user", JSON.stringify(userObj));
+      setSessionUser(userObj);
+      refresh();
+    } catch {
+      setAuthError("सत्यापन अनुरोध विफल रहा।");
     }
   }
 
   function handleLogout() {
-    localStorage.removeItem("neighbourdoc_doctor_session");
     localStorage.removeItem("neighbourdoc_doctor_token");
-    localStorage.removeItem("neighbordoc_doctor_session");
     localStorage.removeItem("neighbordoc_doctor_token");
+    localStorage.removeItem("neighbourdoc_doctor_user");
     setSessionUser(null);
     setOtpSent(false);
-    setNotice("लॉगआउट हो गए।");
   }
 
   async function toggleAvailability() {
     if (!currentDoctor) return;
-    const token = getDoctorToken();
     const next = currentDoctor.availabilityStatus === "online" ? "offline" : "online";
+    const token = getDoctorToken();
     await fetch(`/api/doctors/${currentDoctor.id}/availability`, {
       method: "PATCH",
       headers: {
@@ -218,7 +184,7 @@ export function DoctorDashboardClient() {
       body: JSON.stringify({ status: "in_consultation" })
     });
 
-    // Initiate genuine telephony click-to-call PSTN bridge
+    // Initiate telephony click-to-call bridge
     void fetch("/api/telephony/call-bridge", {
       method: "POST",
       headers: authHeaders,
@@ -297,6 +263,13 @@ export function DoctorDashboardClient() {
     await refresh();
   }
 
+  const handleAppendJanAushadhi = (med: JanAushadhiMedicine) => {
+    const formatted = `${med.genericName} (${med.standardDosage})`;
+    setMedicines((prev) => (prev ? `${prev.trim()}\n${formatted}` : formatted));
+    setMedSearch("");
+    setNotice(`✓ जन औषधि जेनेरिक '${med.genericName}' पर्चे में जोड़ा गया (बचत: ~${med.savingsPercent}%)`);
+  };
+
   // Login Gate
   if (!sessionUser) {
     return (
@@ -369,51 +342,14 @@ export function DoctorDashboardClient() {
     );
   }
 
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
-
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E9ECEF] pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-[#0F2F2E]">डॉक्टर कॉकपिट</h1>
-            <span className="rounded-full bg-[#E8F3F1] px-2.5 py-0.5 text-xs font-black text-[#0B4F48]">
-              NMC वेरिफाइड
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-[#64748B]">
-            {currentDoctor?.name} · {currentDoctor?.specialization ?? "जनरल फिजिशियन"} ({currentDoctor?.phone})
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            className="rounded-xl border border-[#CBD5E1] bg-white px-3.5 py-2 text-xs font-bold text-[#334155] hover:bg-[#F8FAFC] transition"
-            onClick={createDemoPatient}
-          >
-            + डेमो मरीज़ जोड़ें
-          </button>
-          <button
-            className={`rounded-xl px-4 py-2 text-xs font-bold text-white transition ${
-              currentDoctor?.availabilityStatus === "online" ? "bg-[#0B4F48] hover:bg-[#083E38]" : "bg-slate-400"
-            }`}
-            onClick={toggleAvailability}
-          >
-            ● {currentDoctor?.availabilityStatus === "online" ? "ऑनलाइन (कॉल ले रहे हैं)" : "ऑफलाइन"}
-          </button>
-          <button
-            onClick={handleLogout}
-            className="rounded-xl border border-[#E2E8F0] px-3.5 py-2 text-xs font-bold text-[#64748B] hover:bg-slate-100"
-          >
-            लॉगआउट
-          </button>
-        </div>
-      </div>
+      <DoctorHeader
+        doctor={currentDoctor}
+        onAddDemoPatient={createDemoPatient}
+        onToggleAvailability={toggleAvailability}
+        onLogout={handleLogout}
+      />
 
       <p className="mt-3 text-xs font-bold text-[#107569]">{notice}</p>
 
@@ -424,339 +360,42 @@ export function DoctorDashboardClient() {
         <MetricCard label="आज की कुल कमाई" value={`₹${currentDoctor?.earnedToday ?? 0}`} tone="teal" />
       </section>
 
-      {/* Main Grid: Queue & Prescription Preview */}
+      {/* Main Grid: Queue & Prescription Form */}
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        {/* Incoming Queue */}
-        <Surface className="border-[#E2E8F0]">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-black text-[#0F2F2E]">प्रतीक्षारत मरीज़ (15 मिनट SLA)</h2>
-              <p className="text-xs text-[#64748B]">मरीज़ों की कतार समयानुसार व्यवस्थित है</p>
-            </div>
-            <button onClick={refresh} className="text-xs font-bold text-[#0B4F48] hover:underline">
-              ⟳ रीफ्रेश करें
-            </button>
-          </div>
+        <PatientQueueList
+          queue={queue}
+          selectedId={selected?.id ?? null}
+          onRefresh={refresh}
+          onStartConsultation={startConsultation}
+          onEscalate={(id) => setNotice(`टोकन ${id} को सीनियर रिव्यू के लिए चिह्नित किया गया।`)}
+        />
 
-          <div className="mt-4 space-y-3">
-            {queue.map((item) => (
-              <div
-                key={item.id}
-                className={`rounded-2xl border p-4 transition ${
-                  selected?.id === item.id ? "border-[#0B4F48] bg-[#F0F7F6]" : "border-[#E9ECEF] bg-white"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="rounded-md bg-[#E2E8F0] px-2 py-0.5 text-[10px] font-mono font-bold text-[#475569]">
-                      टोकन: {item.id.slice(0, 16)}
-                    </span>
-                    <p className="mt-1 text-base font-black text-[#0F2F2E]">{item.symptoms}</p>
-                    <p className="mt-0.5 text-xs text-[#64748B]">
-                      गंभीरता: <span className="font-bold capitalize">{item.urgencyLevel}</span> · कॉलबैक समय:{" "}
-                      <span className="font-bold text-[#0B4F48]">
-                        {item.callbackDeadline
-                          ? new Date(item.callbackDeadline).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-                          : "15 मिनट में"}
-                      </span>
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-[#E8F3F1] px-2.5 py-0.5 text-xs font-bold text-[#0B4F48]">
-                    फीस पूर्ण (₹{item.plan === "priority" || item.amount === 9900 ? "99" : "49"})
-                  </span>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2.5">
-                  <PrimaryButton onClick={() => startConsultation(item.id)} className="text-xs py-2 px-4">
-                    📞 कॉल व परामर्श शुरू करें
-                  </PrimaryButton>
-                  <button
-                    className="rounded-xl border border-[#CBD5E1] px-3 py-2 text-xs font-bold text-[#475569] hover:bg-slate-50"
-                    onClick={() => setNotice(`टोकन ${item.id} को सीनियर रिव्यू के लिए चिह्नित किया गया।`)}
-                  >
-                    एस्केलेट
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {queue.length === 0 && (
-              <div className="rounded-2xl bg-[#F8FAF9] p-8 text-center text-[#64748B]">
-                <p className="font-bold text-sm">अभी कोई मरीज़ कतार में नहीं है।</p>
-                <p className="mt-1 text-xs">ऊपर &quot;+ डेमो मरीज़ जोड़ें&quot; बटन दबाकर नया केस जोड़ें।</p>
-              </div>
-            )}
-          </div>
-        </Surface>
-
-        {/* Prescription Form / Quick Pad */}
-        <Surface className="border-[#E2E8F0]">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-black text-[#0F2F2E]">डिजिटल पर्चा (Rx) फॉर्मूलेशन</h2>
-              <p className="text-xs text-[#64748B]">यह पर्चा मरीज़ के WhatsApp और PDF पर स्वतः भेजा जाएगा</p>
-            </div>
-            <span className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-              List O / List A केवल
-            </span>
-          </div>
-
-          <div className="mt-3 rounded-xl bg-[#F8FAF9] p-2.5 text-[11px] text-[#64748B] border border-[#E9ECEF] leading-tight">
-            ⚖️ <strong>सांविधिक नियम (NMC):</strong> टेलीमेडिसिन में Schedule X (नशीली/नींद की दवाएं) व इंजेक्शन प्रतिबंधित हैं।
-          </div>
-
-          {/* Jan Aushadhi Copilot Assistant */}
-          <div className="mt-4 rounded-2xl border border-[#D1E6E3] bg-[#F2F8F7] p-3.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-[#0B4F48] flex items-center gap-1.5">
-                💡 जन औषधि जेनेरिक को-पायलट (PMBJP)
-              </span>
-              <span className="text-[10px] font-bold text-[#107569] bg-white px-2 py-0.5 rounded-full border border-[#D1E6E3]">
-                मरीज़ बचत: 60%-85%
-              </span>
-            </div>
-
-            <div className="mt-2">
-              <input
-                className="w-full rounded-xl border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs text-[#0F172A] placeholder-[#94A3B8] focus:border-[#0B4F48] focus:outline-none"
-                placeholder="ब्रांड या साल्ट खोजें (उदा. Augmentin, Pan-D, Dolo, Zifi, खांसी...)"
-                value={medSearch}
-                onChange={(e) => setMedSearch(e.target.value)}
-              />
-            </div>
-
-            {/* Suggestions dropdown */}
-            {janAushadhiSuggestions.length > 0 && (
-              <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-[#D1E6E3] bg-white p-2 divide-y divide-[#F1F5F9] shadow-sm">
-                {janAushadhiSuggestions.map((med) => (
-                  <div key={med.id} className="py-2 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-black text-[#0F2F2E]">{med.genericName}</p>
-                      <p className="text-[10px] text-[#64748B]">
-                        ब्रांड: {med.brandExamples.slice(0, 3).join(", ")}
-                      </p>
-                      <p className="text-[10px] font-bold text-[#0B4F48]">
-                        जन औषधि: ₹{med.janAushadhiPriceInr} (ब्रांडेड ₹{med.brandAveragePriceInr} · {med.savingsPercent}% बचत)
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAppendJanAushadhi(med)}
-                      className="shrink-0 rounded-lg bg-[#0B4F48] px-2.5 py-1 text-[10px] font-bold text-white hover:bg-[#083E38] transition shadow-xs"
-                    >
-                      + जोड़ें
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Quick Chips */}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="text-[10px] font-bold text-[#64748B] self-center">त्वरित:</span>
-              <button
-                type="button"
-                onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[0])}
-                className="rounded-lg bg-white px-2 py-0.5 text-[10px] font-bold text-[#0B4F48] border border-[#D1E6E3] hover:bg-[#E8F3F1]"
-              >
-                + Dolo (PCM 650)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[1])}
-                className="rounded-lg bg-white px-2 py-0.5 text-[10px] font-bold text-[#0B4F48] border border-[#D1E6E3] hover:bg-[#E8F3F1]"
-              >
-                + Augmentin (Amox-Clav 625)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[3])}
-                className="rounded-lg bg-white px-2 py-0.5 text-[10px] font-bold text-[#0B4F48] border border-[#D1E6E3] hover:bg-[#E8F3F1]"
-              >
-                + Pan-D (एसिडिटी)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[7])}
-                className="rounded-lg bg-white px-2 py-0.5 text-[10px] font-bold text-[#0B4F48] border border-[#D1E6E3] hover:bg-[#E8F3F1]"
-              >
-                + Montair-LC (एलर्जी)
-              </button>
-            </div>
-          </div>
-
-          {/* Statutory Drug Safety Alert */}
-          {!drugSafetyAudit.isCompliant && (
-            <div className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-800">
-              <p className="font-bold">⛔ {drugSafetyAudit.warningMessage}</p>
-            </div>
-          )}
-
-          {drugSafetyAudit.isCompliant && drugSafetyAudit.estimatedSavingsInr > 0 && (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 flex items-center justify-between">
-              <span>✓ जन औषधि को-पायलट: मरीज़ के लिए लगभग ₹{drugSafetyAudit.estimatedSavingsInr} की बचत सुनिश्चित की जा रही है!</span>
-              <span className="text-[10px] bg-white px-2 py-0.5 rounded-md border border-emerald-300">
-                {drugSafetyAudit.recommendations.length} जेनेरिक दवाइयां
-              </span>
-            </div>
-          )}
-
-          <div className="mt-4 space-y-3.5">
-            <div>
-              <label className="text-xs font-bold text-[#334155]">दवाइयां व खुराक (Medicines &amp; Dosage)</label>
-              <textarea
-                className={`mt-1 min-h-[110px] w-full rounded-xl border p-3 text-xs font-medium focus:outline-none ${
-                  !drugSafetyAudit.isCompliant
-                    ? "border-red-400 bg-red-50/50 text-red-900 focus:border-red-600"
-                    : "border-[#CBD5E1] bg-[#F8FAFC] text-[#0F172A] focus:border-[#0B4F48] focus:bg-white"
-                }`}
-                value={medicines}
-                onChange={(e) => setMedicines(e.target.value)}
-                placeholder="दवा का नाम, क्षमता, खुराक (सुबह-दोपहर-रात), कितने दिन"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-[#334155]">डॉक्टर की सलाह व परहेज (Advice &amp; Diet)</label>
-              <textarea
-                className="mt-1 min-h-[90px] w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] p-3 text-xs font-medium text-[#0F172A] focus:border-[#0B4F48] focus:bg-white focus:outline-none"
-                value={advice}
-                onChange={(e) => setAdvice(e.target.value)}
-                placeholder="परहेज, क्या खाएं-पिएं, फ़ॉलोअप निर्देश"
-              />
-            </div>
-
-            <div className="pt-2">
-              <PrimaryButton
-                disabled={!selected || !drugSafetyAudit.isCompliant}
-                onClick={completeConsultation}
-                className="w-full text-xs py-3"
-              >
-                {!drugSafetyAudit.isCompliant
-                  ? "⛔ प्रतिबंधित दवा हटाएं (Schedule X Banned)"
-                  : "✓ परामर्श पूरा करें व पर्चा जारी करें"}
-              </PrimaryButton>
-            </div>
-          </div>
-        </Surface>
+        <JanAushadhiRxCopilot
+          medicines={medicines}
+          advice={advice}
+          medSearch={medSearch}
+          canComplete={Boolean(selected)}
+          onMedicinesChange={setMedicines}
+          onAdviceChange={setAdvice}
+          onMedSearchChange={setMedSearch}
+          onAppendJanAushadhi={handleAppendJanAushadhi}
+          onCompleteConsultation={completeConsultation}
+        />
       </section>
 
-      {/* ACTIVE CALL COCKPIT MODAL */}
-      {activeCallModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#072421]/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-[#D1E6E3]">
-            <div className="flex items-center justify-between border-b border-[#E9ECEF] pb-4">
-              <div>
-                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black uppercase text-red-800 animate-pulse">
-                  ● लाइव टेली-परामर्श जारी
-                </span>
-                <h3 className="mt-1 text-xl font-black text-[#0F2F2E]">मरीज़ कॉलबैक कॉकपिट</h3>
-              </div>
-              <div className="text-right">
-                <span className="font-mono text-2xl font-black text-[#0B4F48]">{formatTimer(callSeconds)}</span>
-                <p className="text-[10px] font-bold text-[#64748B]">बातचीत समय</p>
-              </div>
-            </div>
-
-            {/* Patient & Masked Phone Telephony Card */}
-            <div className="mt-5 rounded-2xl border border-[#D1E6E3] bg-[#F2F8F7] p-4 text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-bold text-[#64748B]">मरीज़ संदर्भ: {selected.patientId}</p>
-                  <p className="text-sm font-black text-[#0F2F2E] mt-0.5">तकलीफ़: {selected.symptoms}</p>
-                  <p className="text-xs font-semibold text-[#107569] mt-0.5">
-                    सुरक्षित मास्क किया गया नंबर: <span className="font-mono">+91 97XXXXXX01 (Exotel PSTN ब्रिज)</span>
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white px-3 py-1.5 text-center shadow-sm border border-[#D1E6E3]">
-                  <span className="text-xs font-black text-[#0B4F48] capitalize">
-                    {callStatus === "connected" ? "🔊 कॉल कनेक्टेड" : "📞 डायलिंग..."}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Rx Entry inside the call */}
-            <div className="mt-5 space-y-3">
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[#334155]">दवाइयां (सीधे पर्चे में जुड़ेंगी)</label>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[0])}
-                      className="text-[9px] font-bold text-[#0B4F48] bg-[#E8F3F1] px-1.5 py-0.5 rounded border border-[#D1E6E3]"
-                    >
-                      + Dolo 650
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[1])}
-                      className="text-[9px] font-bold text-[#0B4F48] bg-[#E8F3F1] px-1.5 py-0.5 rounded border border-[#D1E6E3]"
-                    >
-                      + Augmentin 625
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAppendJanAushadhi(JAN_AUSHADHI_CATALOG[3])}
-                      className="text-[9px] font-bold text-[#0B4F48] bg-[#E8F3F1] px-1.5 py-0.5 rounded border border-[#D1E6E3]"
-                    >
-                      + Pan-D
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  className={`mt-1 min-h-[90px] w-full rounded-xl border p-3 text-xs font-medium focus:outline-none ${
-                    !drugSafetyAudit.isCompliant
-                      ? "border-red-400 bg-red-50/50 text-red-900 focus:border-red-600"
-                      : "border-[#CBD5E1] bg-[#F8FAFC] text-[#0F172A] focus:border-[#0B4F48] focus:bg-white"
-                  }`}
-                  value={medicines}
-                  onChange={(e) => setMedicines(e.target.value)}
-                />
-              </div>
-
-              {!drugSafetyAudit.isCompliant && (
-                <div className="rounded-xl border border-red-300 bg-red-50 p-2.5 text-[11px] text-red-800 font-bold">
-                  ⛔ {drugSafetyAudit.warningMessage}
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs font-bold text-[#334155]">सलाह व निर्देश</label>
-                <input
-                  className="mt-1 w-full rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3.5 py-2.5 text-xs font-medium text-[#0F172A] focus:border-[#0B4F48] focus:bg-white focus:outline-none"
-                  value={advice}
-                  onChange={(e) => setAdvice(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-[#E9ECEF] pt-4">
-              <button
-                onClick={() => setActiveCallModal(false)}
-                className="rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-xs font-bold text-[#475569] hover:bg-slate-50"
-              >
-                विंडो मिनिमाइज़ करें
-              </button>
-              <button
-                disabled={!drugSafetyAudit.isCompliant}
-                onClick={completeConsultation}
-                className={`rounded-xl px-5 py-2.5 text-xs font-black text-white shadow ${
-                  !drugSafetyAudit.isCompliant
-                    ? "bg-red-400 cursor-not-allowed"
-                    : "bg-[#0B4F48] hover:bg-[#083E38]"
-                }`}
-              >
-                {!drugSafetyAudit.isCompliant
-                  ? "⛔ प्रतिबंधित दवा हटाएं"
-                  : "कॉल समाप्त करें व पर्चा भेजें \u2192"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ActiveCallModal
+        isOpen={activeCallModal}
+        consultation={selected ?? null}
+        callStatus={callStatus}
+        callSeconds={callSeconds}
+        medicines={medicines}
+        advice={advice}
+        onMedicinesChange={setMedicines}
+        onAdviceChange={setAdvice}
+        onAppendJanAushadhi={handleAppendJanAushadhi}
+        onClose={() => setActiveCallModal(false)}
+        onCompleteConsultation={completeConsultation}
+      />
 
       <footer className="mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8]">
         NeighbourDoc Telehealth Clinical Suite · Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
