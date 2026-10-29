@@ -1,7 +1,8 @@
 # NeighbourDoc Production Monorepo
-*Developed &amp; Engineered by **Qsura India Pvt. Ltd.***
+*Proprietary Software & Intellectual Property of **Qsura India Pvt. Ltd.***  
+*Founder & Chief Architect: **Dr. Irfan Ashraf***
 
-NeighbourDoc is a low-cost, WhatsApp-first, hyperlocal healthcare consultation platform for India, built and operated by **Qsura India Pvt. Ltd.**
+NeighbourDoc is an enterprise-grade, low-cost, WhatsApp-first hyperlocal healthcare teleconsultation platform for India, owned and operated by **Qsura India Pvt. Ltd.** under the architectural leadership of **Dr. Irfan Ashraf**.
 
 Positioning: **Doctor consultation in 15 minutes — starting at ₹49.**
 

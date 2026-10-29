@@ -1,6 +1,6 @@
 # Architecture & Autonomous Agentic Pipelines
 
-NeighbourDoc is an enterprise-grade telehealth platform powered and maintained by **Qsura India Pvt. Ltd.** It uses a unified modular monorepo ensuring patient web, doctor cockpit, admin SaaS, and Expo mobile clients share the exact same healthcare compliance rules, statutory drug safety audits, and autonomous pipelines.
+NeighbourDoc is an enterprise-grade telehealth platform owned and operated as the proprietary property of **Qsura India Pvt. Ltd.**, conceived, founded, and architected by **Dr. Irfan Ashraf**. It uses a unified modular monorepo ensuring patient web, doctor cockpit, admin SaaS, and Expo mobile clients share the exact same healthcare compliance rules, statutory drug safety audits, and autonomous pipelines.
 
 ```mermaid
 flowchart TD

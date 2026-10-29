@@ -1,6 +1,8 @@
 {
   "name": "neighbourdoc",
   "version": "1.0.0",
+  "author": "Dr. Irfan Ashraf (Qsura India Pvt. Ltd.)",
+  "copyright": "Qsura India Pvt. Ltd.",
   "private": true,
   "workspaces": [
     "apps/*",

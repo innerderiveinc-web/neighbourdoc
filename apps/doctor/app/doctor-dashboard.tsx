@@ -398,7 +398,7 @@ export function DoctorDashboardClient() {
       />
 
       <footer className="mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8]">
-        NeighbourDoc Telehealth Clinical Suite · Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
+        NeighbourDoc Telehealth Clinical Suite · Proprietary Asset of <strong>Qsura India Pvt. Ltd.</strong> · Founder &amp; Chief Architect: <strong>Dr. Irfan Ashraf</strong>
       </footer>
     </main>
   );

@@ -377,7 +377,7 @@ export function AdminDashboardClient() {
       )}
 
       <footer className="mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8]">
-        NeighbourDoc Operations Platform · Developed &amp; Maintained by <strong>Qsura India Pvt. Ltd.</strong>
+        NeighbourDoc Operations Platform · Proprietary Asset of <strong>Qsura India Pvt. Ltd.</strong> · Founder &amp; Chief Architect: <strong>Dr. Irfan Ashraf</strong>
       </footer>
     </main>
   );

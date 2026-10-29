@@ -1,6 +1,6 @@
 # Production Checklist & Compliance Audit
 
-NeighbourDoc telehealth platform is developed, operated, and maintained by **Qsura India Pvt. Ltd.** All checklist items below have been remediated, verified, and audited against statutory regulations (*Telemedicine Practice Guidelines 2020*, *Drugs and Cosmetics Act*, *Digital Personal Data Protection Act 2023*).
+NeighbourDoc telehealth platform is the proprietary intellectual property of **Qsura India Pvt. Ltd.**, founded and architected by **Dr. Irfan Ashraf**. All checklist items below have been remediated, verified, and audited against statutory regulations (*Telemedicine Practice Guidelines 2020*, *Drugs and Cosmetics Act*, *Digital Personal Data Protection Act 2023*).
 
 ---
 

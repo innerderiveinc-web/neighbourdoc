@@ -456,7 +456,7 @@ export default function PatientHome() {
             <p className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <span>© {new Date().getFullYear()} NeighbourDoc Healthcare Network. All rights reserved.</span>
               <span className="font-semibold text-[#0B4F48]">
-                Developed &amp; Powered by <strong>Qsura India Pvt. Ltd.</strong>
+                Proprietary Asset of <strong>Qsura India Pvt. Ltd.</strong> · Founder &amp; Chief Architect: <strong>Dr. Irfan Ashraf</strong>
               </span>
             </p>
           </div>

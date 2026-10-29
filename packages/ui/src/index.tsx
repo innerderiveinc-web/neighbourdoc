@@ -112,7 +112,7 @@ export function StatusBadge({
 export function BrandFooter({ className = "" }: { className?: string }) {
   return (
     <footer className={`mt-8 border-t border-[#E2E8F0] pt-4 text-center text-xs text-[#94A3B8] ${className}`}>
-      NeighbourDoc Healthcare Platform · Developed &amp; Maintained by <strong>Qsura India Pvt. Ltd.</strong>
+      NeighbourDoc Healthcare Platform · Proprietary Asset of <strong>Qsura India Pvt. Ltd.</strong> · Founder &amp; Chief Architect: <strong>Dr. Irfan Ashraf</strong>
     </footer>
   );
 }

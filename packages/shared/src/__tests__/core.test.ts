@@ -149,6 +149,8 @@ describe("NeighbourDoc core healthcare logic", () => {
   it("exposes unified brand constants and corporate attribution", () => {
     assert.equal(BRAND_CONSTANTS.BRAND_NAME, "NeighbourDoc");
     assert.equal(BRAND_CONSTANTS.CORPORATE_ENTITY, "Qsura India Pvt. Ltd.");
+    assert.equal(BRAND_CONSTANTS.LEGAL_OWNER, "Qsura India Pvt. Ltd.");
+    assert.equal(BRAND_CONSTANTS.FOUNDER_AND_ARCHITECT, "Dr. Irfan Ashraf");
     assert.equal(BRAND_CONSTANTS.SLA_GUARANTEE_MINUTES, 15);
     assert.equal(BRAND_CONSTANTS.EMERGENCY_HELPLINES.nationalEmergency, "112");
   });
